@@ -28,7 +28,7 @@ export default defineConfig({
         cleanupOutdatedCaches: true,
         clientsClaim: true,
         skipWaiting: true,
-        cacheId: "loan-calculator-v2.2",
+        cacheId: "loan-calculator-v2.4",
         // تفعيل تتبع التحليلات في وضع الأوفلاين
         offlineGoogleAnalytics: true,
         runtimeCaching: [

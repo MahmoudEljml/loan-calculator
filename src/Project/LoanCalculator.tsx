@@ -7,6 +7,7 @@ import FAB from "../Components/FAB";
 import ArrowIcon from "../IconSVG/ArrowIcon";
 // import CurrentChipInformation from "./CurrentChipInformation";
 // import MapComponent from "./Map";
+import CustomDialog from '../Components/Dialog';
 
 const useLocalStorage = <T,>(key: string, initialValue: T) => {
     const [storedValue, setStoredValue] = useState<T>(() => {
@@ -170,15 +171,16 @@ const ProfessionalLoanCalculator = () => {
     return (
         <div className="min-h-screen flex items-center justify-center font-sans" dir="rtl">
             {/* <div className="bg-white p-6 rounded-2xl shadow-lg w-full max-w-md mx-4"> */}
-            <div className="w-full max-w-xl">
+            <div className="w-full max-w-xl relative">
                 <h2 className="text-center text-gray-800 mb-5 text-2xl font-bold">حاسبة القروض</h2>
-
+                <CustomDialog />
                 {/* <CurrentChipInformation currentTier={currentTier} /> */}
 
                 {/* <MapComponent
                     markers={[
                     ]}
                 /> */}
+
 
 
                 <PartCalculate
@@ -281,6 +283,7 @@ function PartCalculate({
     return (
         <>
             <div className="mb-6">
+
                 <div className="flex justify-between items-center mb-2">
                     <div className="flex items-center">
                         <div onClick={() => setShowAmountInput(!showAmountInput)} className="cursor-pointer">
