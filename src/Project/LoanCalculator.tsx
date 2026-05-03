@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import LoanDetails from "./LoanDetails";
 // import MapComponent from "./Map";
 import { loanData } from "./Data";
@@ -8,6 +8,7 @@ import ArrowIcon from "../IconSVG/ArrowIcon";
 // import CurrentChipInformation from "./CurrentChipInformation";
 // import MapComponent from "./Map";
 import CustomDialog from '../Components/Dialog';
+import MapComponent from "./Map";
 
 const useLocalStorage = <T,>(key: string, initialValue: T) => {
     const [storedValue, setStoredValue] = useState<T>(() => {
@@ -232,6 +233,15 @@ function PartCalculate({
     validateAmount,
     validateMonths
 }: PartCalculateProps) {
+
+    // تحديد الحدود الثابتة للمدخلات
+    const MIN_AMOUNT = 5000;
+    const MAX_AMOUNT = 292000;
+    const STEP_AMOUNT = 1000;
+
+    // Refs للتحكم في المؤقت
+    const intervalRef = useRef<number | null>(null);
+
     // حساب الفجوات ديناميكياً من البيانات
     const getAmountStatus = () => {
         if (!currentTier) return null;
@@ -279,6 +289,42 @@ function PartCalculate({
     };
 
     const amountStatus = getAmountStatus();
+
+    // دالة مساعدة لبدء التغيير المستمر
+    const startChange = useCallback((action: 'increase' | 'decrease') => {
+        // تنفيذ التغيير فوراً عند الضغط
+        if (action === 'increase') {
+            setAmount(Math.min(MAX_AMOUNT, amount + STEP_AMOUNT));
+        } else {
+            setAmount(Math.max(MIN_AMOUNT, amount - STEP_AMOUNT));
+        }
+
+        // بدء المؤقت بعد تأخير بسيط (300ms) لتجنب التغيير غير المقصود عند النقر العادي
+        intervalRef.current = setInterval(() => {
+            setAmount((prev) => {
+                if (action === 'increase') {
+                    return Math.min(MAX_AMOUNT, prev + STEP_AMOUNT);
+                } else {
+                    return Math.max(MIN_AMOUNT, prev - STEP_AMOUNT);
+                }
+            });
+        }, 100); // سرعة التكرار (كل 100ms)
+    }, [setAmount, amount]);
+
+    // دالة مساعدة لإيقاف التغيير
+    const stopChange = useCallback(() => {
+        if (intervalRef.current) {
+            clearInterval(intervalRef.current);
+            intervalRef.current = null;
+        }
+    }, []);
+
+    // تنظيف المؤقت عند إلغاء تحميل المكون
+    useEffect(() => {
+        return () => {
+            if (intervalRef.current) clearInterval(intervalRef.current);
+        };
+    }, []);
 
     return (
         <>
@@ -332,15 +378,43 @@ function PartCalculate({
 
 
 
-                <input
-                    type="range"
-                    min="5000"
-                    max="292000"
-                    step="1000"
-                    value={amount}
-                    onChange={e => setAmount(Number(e.target.value))}
-                    className="w-full cursor-pointer accent-blue-500"
-                />
+                {/* Added Buttons Control Wrapper */}
+                <div className="flex items-center gap-2 mb-2">
+                    <button
+                        onMouseDown={() => startChange('decrease')}
+                        onMouseUp={stopChange}
+                        onMouseLeave={stopChange}
+                        onTouchStart={() => startChange('decrease')}
+                        onTouchEnd={stopChange}
+                        disabled={amount <= MIN_AMOUNT}
+                        className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded disabled:opacity-50 disabled:cursor-not-allowed w-12 h-12 flex items-center justify-center select-none"
+                    >
+                        -
+                    </button>
+
+                    <input
+                        type="range"
+                        min={MIN_AMOUNT}
+                        max={MAX_AMOUNT}
+                        step={STEP_AMOUNT}
+                        value={amount}
+                        onChange={e => setAmount(Number(e.target.value))}
+                        className="w-full cursor-pointer accent-blue-500"
+                    />
+
+                    <button
+                        onMouseDown={() => startChange('increase')}
+                        onMouseUp={stopChange}
+                        onMouseLeave={stopChange}
+                        onTouchStart={() => startChange('increase')}
+                        onTouchEnd={stopChange}
+                        disabled={amount >= MAX_AMOUNT}
+                        className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded disabled:opacity-50 disabled:cursor-not-allowed w-12 h-12 flex items-center justify-center select-none"
+                    >
+                        +
+                    </button>
+                </div>
+
                 {/* عرض الرسالة المناسبة بناءً على حالة المبلغ */}
                 {amountStatus && amountStatus.message && (
                     <div className={`text-sm  text-right rounded-lg p-2 ${amountStatus.type === 'error' ? 'text-red-500 bg-red-50' :
@@ -511,7 +585,5 @@ function ShareWhatsApp({
         </>
     );
 }
-
-
 
 export default ProfessionalLoanCalculator;

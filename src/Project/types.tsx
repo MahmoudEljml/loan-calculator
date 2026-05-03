@@ -1,3 +1,5 @@
+import type { Dispatch, SetStateAction } from "react";
+
 export interface LoanTier {
     product: string;
     min: number;
@@ -23,9 +25,10 @@ export interface CurrentChipInformationProps {
 
 export interface PartCalculateProps {
     amount: number;
-    setAmount: (value: number) => void;
+    setAmount: Dispatch<SetStateAction<number>>;
+
     months: number;
-    setMonths: (value: number) => void;
+    setMonths: Dispatch<SetStateAction<number>>;
     showAmountInput: boolean;
     setShowAmountInput: (value: boolean) => void;
     showMonthsInput: boolean;

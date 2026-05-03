@@ -65,10 +65,10 @@ function MapComponent({
         new GoogleArabicLayer().addTo(mapInstanceRef.current);
 
         // إضافة طبقة الأسماء بالعربية
-        L.tileLayer('https://mt1.google.com/vt/lyrs=h@221097440&hl=ar&x={x}&y={y}&z={z}', {
-            maxZoom: 18,
-            minZoom: 13,
-        }).addTo(mapInstanceRef.current);
+        // L.tileLayer('https://mt1.google.com/vt/lyrs=h@221097440&hl=ar&x={x}&y={y}&z={z}', {
+        //     maxZoom: 18,
+        //     minZoom: 13,
+        // }).addTo(mapInstanceRef.current);
 
         // إنشاء طبقة GeoJSON باستخدام البيانات المستوردة
         const geoJsonLayer = L.geoJSON(dakahliaData, {
