@@ -1,4 +1,4 @@
-import { Calculator, Hash, Users } from "lucide-react"
+import { Calculator, Hash} from "lucide-react"
 import { NavLink, useLocation } from "react-router-dom"
 import {
   Sidebar,
@@ -8,7 +8,7 @@ import {
   SidebarGroupContent,
   SidebarGroupLabel,
   SidebarHeader,
-  SidebarInput,
+  // SidebarInput,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
@@ -30,12 +30,12 @@ const nav = [
     label: "أكواد iScore",
     icon: Hash,
   },
-  {
-    to: paths.customers,
-    end: false,
-    label: "بيانات العملاء",
-    icon: Users,
-  },
+  // {
+  //   to: paths.customers,
+  //   end: false,
+  //   label: "بيانات العملاء",
+  //   icon: Users,
+  // },
 ] as const
 
 export function AppSidebar() {
@@ -58,7 +58,7 @@ export function AppSidebar() {
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
-        <SidebarInput className="bg-background group-data-[collapsible=icon]:hidden" placeholder="بحث…" />
+        {/* <SidebarInput className="bg-background group-data-[collapsible=icon]:hidden" placeholder="بحث…" /> */}
       </SidebarHeader>
       <SidebarSeparator className="mx-0 group-data-[collapsible=icon]:opacity-0" />
       <SidebarContent>
@@ -75,7 +75,7 @@ export function AppSidebar() {
                     <SidebarMenuButton asChild isActive={isActive} tooltip={label}>
                       <NavLink end={end} to={to}>
                         <Icon />
-                        <span>{label}</span>
+                        <span dir="rtl">{label}</span>
                       </NavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>

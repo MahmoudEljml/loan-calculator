@@ -26,19 +26,22 @@ function isAppRoute(value: string | null): value is AppRoute {
 function App() {
   const location = useLocation()
   const navigate = useNavigate()
-  const initialPathname = useRef(location.pathname)
+  const isInitialized = useRef(false)
+
+  // استعادة الصفحة المحفوظة عند أول تحميل فقط
 
   useEffect(() => {
-    const savedPage = window.localStorage.getItem(STORAGE_KEY)
-    if (
-      isAppRoute(savedPage) &&
-      initialPathname.current === paths.loanCalculator &&
-      savedPage !== initialPathname.current
-    ) {
-      navigate(savedPage, { replace: true })
+    if (!isInitialized.current) {
+      isInitialized.current = true
+      const savedPage = window.localStorage.getItem(STORAGE_KEY)
+      if (isAppRoute(savedPage) && savedPage !== location.pathname) {
+        navigate(savedPage, { replace: true })
+      }
     }
-  }, [navigate])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
+  // حفظ الصفحة الحالية في localStorage عند كل تغيير
   useEffect(() => {
     if (isAppRoute(location.pathname)) {
       window.localStorage.setItem(STORAGE_KEY, location.pathname)
@@ -56,9 +59,9 @@ function App() {
       <TooltipProvider>
         <AppSidebar />
         <SidebarInset className="bg-background pb-[env(safe-area-inset-bottom,0px)]">
-          <header className="flex shrink-0 flex-col gap-3 border-b border-border bg-background px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-4 sm:py-3">
+          <header className="flex shrink-0 gap-3 border-b border-border bg-background px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-4 sm:py-3">
             <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
-              <SidebarTrigger className="shrink-0" />
+              <SidebarTrigger />
             </div>
             <div className="flex shrink-0 items-center justify-end gap-1 sm:gap-2">
               <ShareDialog />

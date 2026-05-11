@@ -307,7 +307,7 @@ function PartCalculate({
                     return Math.max(MIN_AMOUNT, prev - STEP_AMOUNT);
                 }
             });
-        }, 100); // سرعة التكرار (كل 100ms)
+        }, 200); // سرعة التكرار (كل 100ms)
     }, [setAmount, amount]);
 
     // دالة مساعدة لإيقاف التغيير
