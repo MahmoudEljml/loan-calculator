@@ -47,12 +47,11 @@ export function AppSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton asChild size="lg">
-              <NavLink end to={paths.loanCalculator}>
-                <div className="flex aspect-square size-7 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+              <NavLink end to={paths.loanCalculator} >
+                <div className="flex aspect-square size-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
                   <Calculator className="size-8" />
                 </div>
                 <div className="grid min-w-0 flex-1 gap-0.5 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">حاسبة القروض</span>
                   <span className="truncate text-xs text-sidebar-foreground/70">أدوات مالية</span>
                 </div>
               </NavLink>
@@ -90,7 +89,7 @@ export function AppSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton className="pointer-events-none text-xs text-sidebar-foreground/60 group-data-[collapsible=icon]:hidden">
-              <span className="w-full truncate text-left">طيّ الشريط: Ctrl+B</span>
+              
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react';
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { useEffect, useRef } from 'react';
+import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { AppSidebar } from './components/app-sidebar.tsx';
 import { ModeToggle } from './components/mode-toggle.tsx';
 import PWABadge from './PWA/PWABadge.tsx';
@@ -13,7 +14,37 @@ import { paths } from './pages/paths.ts';
 import './App.css';
 import ShareDialog from './components/Dialog.tsx';
 
+const STORAGE_KEY = 'loan-calculator-last-page'
+
+type AppRoute = (typeof paths)[keyof typeof paths]
+const validPaths = Object.values(paths) as AppRoute[]
+
+function isAppRoute(value: string | null): value is AppRoute {
+  return value !== null && validPaths.includes(value as AppRoute)
+}
+
 function App() {
+  const location = useLocation()
+  const navigate = useNavigate()
+  const initialPathname = useRef(location.pathname)
+
+  useEffect(() => {
+    const savedPage = window.localStorage.getItem(STORAGE_KEY)
+    if (
+      isAppRoute(savedPage) &&
+      initialPathname.current === paths.loanCalculator &&
+      savedPage !== initialPathname.current
+    ) {
+      navigate(savedPage, { replace: true })
+    }
+  }, [navigate])
+
+  useEffect(() => {
+    if (isAppRoute(location.pathname)) {
+      window.localStorage.setItem(STORAGE_KEY, location.pathname)
+    }
+  }, [location.pathname])
+
   return (
     <SidebarProvider
       style={
@@ -28,12 +59,6 @@ function App() {
           <header className="flex shrink-0 flex-col gap-3 border-b border-border bg-background px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-4 sm:py-3">
             <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
               <SidebarTrigger className="shrink-0" />
-              <div className="min-w-0">
-                <p className="text-xs font-medium text-muted-foreground">التطبيق</p>
-                <p className="truncate text-sm font-semibold sm:text-base">
-                  حاسبة القروض 
-                </p>
-              </div>
             </div>
             <div className="flex shrink-0 items-center justify-end gap-1 sm:gap-2">
               <ShareDialog />
