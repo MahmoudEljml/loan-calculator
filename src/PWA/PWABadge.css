@@ -1,35 +1,52 @@
-.PWABadge-container {
-    padding: 0;
-    margin: 0;
-    width: 0;
-    height: 0;
-}
+/* Toast ثابت بزاوية أسفل-يمين (بعيداً عن الشريط)، ألوان من ثيم التطبيق */
 .PWABadge-toast {
-    position: fixed;
-    right: 0;
-    bottom: 0;
-    margin: 16px;
-    padding: 12px;
-    border: 1px solid #8885;
-    border-radius: 4px;
-    z-index: 1000;
-    text-align: left;
-    box-shadow: 3px 4px 5px 0 #8885;
-    background-color: white;
-}
-.PWABadge-toast-message {
-    margin-bottom: 8px;
-}
-.PWABadge-toast-button {
-    border: 1px solid #8885;
-    outline: none;
-    margin-right: 5px;
-    border-radius: 2px;
-    padding: 3px 10px;
+  position: fixed;
+  inset-inline-end: max(1rem, env(safe-area-inset-right, 0px));
+  bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+  inset-inline-start: auto;
+  max-width: min(20rem, calc(100vw - 2rem));
+  margin: 0;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  z-index: 40;
+  text-align: start;
+  box-shadow:
+    0 10px 15px -3px color-mix(in oklch, var(--foreground) 8%, transparent),
+    0 4px 6px -4px color-mix(in oklch, var(--foreground) 8%, transparent);
+  background-color: var(--card);
+  color: var(--card-foreground);
 }
 
-/* install button specific tweaks */
+.PWABadge-message {
+  margin-bottom: 0.5rem;
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+.PWABadge-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.PWABadge-toast-button {
+  border: 1px solid var(--border);
+  outline: none;
+  border-radius: calc(var(--radius) - 2px);
+  padding: 0.25rem 0.75rem;
+  font-size: 0.8125rem;
+  background-color: var(--secondary);
+  color: var(--secondary-foreground);
+  cursor: pointer;
+}
+
+.PWABadge-toast-button:hover {
+  background-color: color-mix(in oklch, var(--secondary) 90%, var(--foreground));
+}
+
+/* إزالة وضع التثبيت القديم (كان يلتصق باليسار فوق الشريط) */
 .PWABadge-install .PWABadge-toast {
-    right: auto;
-    left: 0;
+  inset-inline-end: max(1rem, env(safe-area-inset-right, 0px));
+  inset-inline-start: auto;
 }

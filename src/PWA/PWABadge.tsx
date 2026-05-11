@@ -42,10 +42,12 @@ function PWABadge() {
         && (
           <div className="PWABadge-toast">
             <div className="PWABadge-message">
-              <span id="toast-message">App ready to work offline.</span>
+              <span id="toast-message">التطبيق جاهز للعمل دون اتصال.</span>
             </div>
             <div className="PWABadge-buttons">
-              <button className="PWABadge-toast-button" onClick={() => close()}>Close</button>
+              <button type="button" className="PWABadge-toast-button" onClick={() => close()}>
+                إغلاق
+              </button>
             </div>
           </div>
         )}
@@ -53,11 +55,15 @@ function PWABadge() {
         && (
           <div className="PWABadge-toast">
             <div className="PWABadge-message">
-              <span id="toast-message">💾 New content available! Click on reload button to update.</span>
+              <span id="toast-message">يتوفر محتوى جديد. اضغط «إعادة التحميل» للتحديث.</span>
             </div>
             <div className="PWABadge-buttons">
-              <button className="PWABadge-toast-button" onClick={() => updateServiceWorker(true)}>Reload</button>
-              <button className="PWABadge-toast-button" onClick={() => close()}>Close</button>
+              <button type="button" className="PWABadge-toast-button" onClick={() => updateServiceWorker(true)}>
+                إعادة التحميل
+              </button>
+              <button type="button" className="PWABadge-toast-button" onClick={() => close()}>
+                لاحقاً
+              </button>
             </div>
           </div>
         )}

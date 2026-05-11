@@ -3,12 +3,12 @@ import LoanDetails from "./LoanDetails";
 // import MapComponent from "./Map";
 import { loanData } from "./Data";
 import type { PartCalculateProps, RequiredDocumentsProps, ShareWhatsAppProps } from "./types";
-import FAB from "../Components/FAB";
+import FAB from "../components/FAB";
 import ArrowIcon from "../IconSVG/ArrowIcon";
 // import CurrentChipInformation from "./CurrentChipInformation";
 // import MapComponent from "./Map";
-import CustomDialog from '../Components/Dialog';
-import MapComponent from "./Map";
+import CustomDialog from '../components/Dialog';
+// import MapComponent from "./Map";
 
 const useLocalStorage = <T,>(key: string, initialValue: T) => {
     const [storedValue, setStoredValue] = useState<T>(() => {
