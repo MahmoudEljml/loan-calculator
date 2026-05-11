@@ -12,16 +12,16 @@ export default function LoanDetails({ results, currentTier, amount }: LoanDetail
             <div className="text-center">
                 <div className="grid grid-cols-12 gap-4">
                     <div className="m-auto col-span-6">
-                        <small className="text-gray-300 text-lg">القسط الشهري</small>
-                        <h1 className="text-4xl font-bold">
+                        <small className="text-muted-foreground text-lg">القسط الشهري</small>
+                        <h1 className="text-4xl font-bold text-foreground">
                             {results.monthlyPayment.toLocaleString()}
                             <small className="text-xl mr-1">ج.م</small>
                         </h1>
                     </div>
 
                     <div className="m-auto col-span-3">
-                        <small className="text-gray-300 text-lg">الفائدة السنوية</small>
-                        <div className="text-xl font-semibold">{currentTier?.interest}%</div>
+                        <small className="text-muted-foreground text-lg">الفائدة السنوية</small>
+                        <div className="text-xl font-semibold text-foreground">{currentTier?.interest}%</div>
                     </div>
 
                     <div className="m-auto col-span-3">
@@ -31,42 +31,41 @@ export default function LoanDetails({ results, currentTier, amount }: LoanDetail
                             text="تفاصيل"
                             size={'large'}
                             textPosition="bottom"
-                            icon={<ArrowIcon color="white" size={25} className={`${showDetails ? 'rotate-180' : ''}  transition-transform duration-300`} />}
+                            icon={<ArrowIcon color="currentColor" size={25} className={`${showDetails ? 'rotate-180' : ''}  transition-transform duration-300`} />}
                         />
                     </div>
                 </div>
             </div>
 
             <div
-                className={` bg-gray-900 rounded-[2vw] grid grid-cols-2 gap-4 border-gray-600 transition-all duration-500 ease-in-out overflow-hidden
+                className={`bg-card rounded-3xl border border-border transition-all duration-500 ease-in-out overflow-hidden
                     ${showDetails
-                        ? 'max-h-96 opacity-100 mt-9 py-7'
-                        : 'max-h-0 opacity-0 py-0 my-0'
+                        ? 'max-h-[900px] opacity-100 mt-9 py-7 px-4'
+                        : 'max-h-0 opacity-0 py-0 my-0 px-4'
                     } `}
             >
-                <div className="flex flex-col opacity-90">
-                    <span className="text-base">إجمالي الفوائد</span>
-                    <strong className="text-red-400 text-lg">+ {results.totalInterest.toLocaleString()} ج.م</strong>
-                </div>
-                <div className="flex flex-col opacity-90">
-                    <span className="text-base">إجمالي الاقساط</span>
-                    <strong className="text-lg">{results.totalAmount.toLocaleString()} ج.م</strong>
-                </div>
-                <div className="flex flex-col opacity-90">
-                    <span className="text-base">المصاريف الادارية</span>
-                    <strong className="text-lg">{results.adminFees.toLocaleString()} ج.م ({currentTier?.fees}%)</strong>
-                </div>
-                <div className="flex flex-col opacity-90">
-                    <span className="text-base">رسوم التأمين</span>
-                    <strong className="text-lg">{results.insuranceFees.toLocaleString()} ج.م</strong>
-                </div>
-                <div className="flex flex-col opacity-90">
-                    <div className="flex justify-center items-center">
-                        <span className="text-base">المبلغ المستلم</span>
+                <div className="grid grid-cols-2 gap-4">
+
+                    <div className="rounded-3xl border border-border bg-muted/80 p-4 text-foreground">
+                        <span className="text-sm text-muted-foreground">المصاريف الإدارية</span>
+                        <strong className="block mt-2 text-xl font-semibold">{results.adminFees.toLocaleString()} ج.م ({currentTier?.fees}%)</strong>
                     </div>
-                    <strong className="text-green-400 text-lg">
-                        {(amount - results.adminFees - results.monthlyPayment).toLocaleString()} ج.م
-                    </strong>
+                    <div className="rounded-3xl border border-border bg-muted/80 p-4 text-foreground">
+                        <span className="text-sm text-muted-foreground">رسوم التأمين</span>
+                        <strong className="block mt-2 text-xl font-semibold">{results.insuranceFees.toLocaleString()} ج.م</strong>
+                    </div>
+                    <div className="rounded-3xl border border-border bg-muted/80 p-4 text-foreground">
+                        <span className="text-sm text-muted-foreground">إجمالي الفوائد</span>
+                        <strong className="block mt-2 text-xl font-semibold text-destructive">+ {results.totalInterest.toLocaleString()} ج.م</strong>
+                    </div>
+                    <div className="rounded-3xl border border-border bg-muted/80 p-4 text-foreground">
+                        <span className="text-sm text-muted-foreground">إجمالي الاقساط</span>
+                        <strong className="block mt-2 text-xl font-semibold">{results.totalAmount.toLocaleString()} ج.م</strong>
+                    </div>
+                    <div className="col-span-2 rounded-3xl border border-border bg-muted/80 p-4 text-center text-foreground">
+                        <span className="text-sm text-muted-foreground block mb-2">المبلغ المستلم</span>
+                        <strong className="text-2xl font-semibold text-green-400">{(amount - results.adminFees - results.monthlyPayment).toLocaleString()} ج.م</strong>
+                    </div>
                 </div>
             </div>
 

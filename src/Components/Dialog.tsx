@@ -1,16 +1,21 @@
 import * as Dialog from '@radix-ui/react-dialog';
 import { QRCodeSVG } from 'qrcode.react';
 import { X, Share2 } from 'lucide-react';
+import { Button } from './ui/button';
 
 const ShareDialog = ({ url = "https://elgamal.infinityfreeapp.com" }) => {
     return (
         <Dialog.Root>
             {/* زر فتح النافذة */}
             <Dialog.Trigger asChild>
-                <button className="absolute top-0 right-0 flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition-all shadow-md">
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    className="relative shrink-0"
+                >
                     <Share2 size={18} />
-                    <span>مشاركة</span>
-                </button>
+                </Button>
             </Dialog.Trigger>
 
             <Dialog.Portal >
@@ -35,15 +40,15 @@ const ShareDialog = ({ url = "https://elgamal.infinityfreeapp.com" }) => {
                                 size={200}
                                 level={"H"} // جودة عالية لضمان القراءة حتى لو تم تصغيرها
                                 includeMargin={true}
-                                // imageSettings={{
-                                //     // يمكنك إضافة لوجو صغير في منتصف الكود إذا أردت
-                                //     src: "/vite.svg",
-                                //     x: undefined,
-                                //     y: undefined,
-                                //     height: 24,
-                                //     width: 24,
-                                //     excavate: true,
-                                // }}
+                            // imageSettings={{
+                            //     // يمكنك إضافة لوجو صغير في منتصف الكود إذا أردت
+                            //     src: "/vite.svg",
+                            //     x: undefined,
+                            //     y: undefined,
+                            //     height: 24,
+                            //     width: 24,
+                            //     excavate: true,
+                            // }}
                             />
                         </div>
 

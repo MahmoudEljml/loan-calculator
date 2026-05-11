@@ -27,17 +27,16 @@ export function IScoreCodesPage() {
     )
     : allCodes;
 
-  console.log(filteredCodes);
   return (
-    <div className="space-y-4 text-start">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">أكواد iScore</h1>
+    <div className="space-y-4 text-start" >
+      <div dir="rtl">
+        <h1 className="text-2xl font-semibold tracking-tight" >أكواد iScore</h1>
         <p className="text-sm text-muted-foreground">
-          مرجع لأكواد الاستعلام الائتماني (iScore) وتفسيرها.
+          مرجع لأكواد الاستعلام الائتماني (iScore).
         </p>
       </div>
       <div className="space-y-4">
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2" dir="rtl">
           <input
             type="text"
             placeholder="البحث باستخدام الكود أو الاسم..."
@@ -57,8 +56,8 @@ export function IScoreCodesPage() {
               </thead>
               <tbody>
                 {filteredCodes.length > 0 ? (
-                  filteredCodes.map((row) => (
-                    <tr key={row.code} className="border-b border-border last:border-0">
+                  filteredCodes.map((row, index) => (
+                    <tr key={`${index}-${row.code}`} className="border-b border-border last:border-0">
                       <td className="px-4 py-3 font-mono tabular-nums">{row.code}</td>
                       <td className="px-4 py-3 text-muted-foreground">{row.name}</td>
                     </tr>

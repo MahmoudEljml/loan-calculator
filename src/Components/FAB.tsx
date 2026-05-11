@@ -65,11 +65,11 @@ export default function FAB({
     return (
         <button
             onClick={handleClick}
-            className={`${sizeClasses[size]} bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center active:scale-95 group relative mx-2`}
+            className={`${sizeClasses[size]} bg-primary hover:bg-primary/90 text-primary-foreground rounded-full shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center active:scale-95 group relative mx-2`}
         >
             {icon}
             <span
-                className={`absolute bg-gray-900 text-white px-2 py-1 rounded text-sm whitespace-nowrap 
+                className={`absolute bg-popover text-popover-foreground px-2 py-1 rounded text-sm whitespace-nowrap border border-border
                             transition-all duration-300 ${getTextPositionClasses()}`}>
                 {text}
             </span>

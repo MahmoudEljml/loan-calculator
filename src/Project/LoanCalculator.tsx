@@ -7,7 +7,7 @@ import FAB from "../components/FAB";
 import ArrowIcon from "../IconSVG/ArrowIcon";
 // import CurrentChipInformation from "./CurrentChipInformation";
 // import MapComponent from "./Map";
-import CustomDialog from '../components/Dialog';
+// import CustomDialog from '../components/Dialog';
 // import MapComponent from "./Map";
 
 const useLocalStorage = <T,>(key: string, initialValue: T) => {
@@ -170,11 +170,10 @@ const ProfessionalLoanCalculator = () => {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center font-sans" dir="rtl">
+        <div className="min-h-screen flex items-center justify-center font-sans bg-background text-foreground" dir="rtl">
             {/* <div className="bg-white p-6 rounded-2xl shadow-lg w-full max-w-md mx-4"> */}
-            <div className="w-full max-w-xl relative">
-                <h2 className="text-center text-gray-800 mb-5 text-2xl font-bold">حاسبة القروض</h2>
-                <CustomDialog />
+            <div className="w-full max-w-xl relative bg-card rounded-2xl shadow-lg border border-border p-6">
+                {/* <CustomDialog /> */}
                 {/* <CurrentChipInformation currentTier={currentTier} /> */}
 
                 {/* <MapComponent
@@ -199,7 +198,7 @@ const ProfessionalLoanCalculator = () => {
                 />
 
                 {results && (
-                    <div className="bg-gray-800 rounded-xl p-5 text-white">
+                    <div className="bg-muted rounded-xl p-5 text-foreground border border-border">
 
                         <LoanDetails results={results} currentTier={currentTier} amount={amount} />
                         <RequiredDocuments amount={amount} />
@@ -341,11 +340,11 @@ function PartCalculate({
                             showDetails={showAmountInput}
                             text="تغيير"
                             size={'small'}
-                            icon={<ArrowIcon color="white" size={20} className={`${showAmountInput ? 'rotate-180' : ''}  transition-transform duration-300`} />}
+                            icon={<ArrowIcon color="currentColor" size={20} className={`${showAmountInput ? 'rotate-180' : ''}  transition-transform duration-300`} />}
                         />
 
                     </div>
-                    <b className="text-blue-500 text-lg">{amount.toLocaleString()}</b>
+                    <b className="text-primary text-lg">{amount.toLocaleString()}</b>
                 </div>
 
                 <div className={`transition-all duration-500 ease-in-out overflow-hidden
@@ -361,7 +360,7 @@ function PartCalculate({
                                 setAmount(Number(e.target.value));
                                 e.target.value = validateAmount(Number(e.target.value)).toString();
                             }}
-                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                            className="flex-1 px-3 py-2 border border-input rounded-lg focus:outline-none focus:border-ring bg-background text-foreground"
                             placeholder="أدخل المبلغ"
                         />
                         <button
@@ -369,7 +368,7 @@ function PartCalculate({
                                 setAmount(validateAmount(amount));
                                 setShowAmountInput(false);
                             }}
-                            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                            className="px-4 py-2 bg-primary/10 text-foreground border border-border rounded-lg hover:bg-primary/20 transition-colors"
                         >
                             تم
                         </button>
@@ -387,7 +386,7 @@ function PartCalculate({
                         onTouchStart={() => startChange('decrease')}
                         onTouchEnd={stopChange}
                         disabled={amount <= MIN_AMOUNT}
-                        className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded disabled:opacity-50 disabled:cursor-not-allowed w-12 h-12 flex items-center justify-center select-none"
+                        className="bg-primary/10 text-foreground border border-border font-bold py-2 px-4 rounded disabled:opacity-50 disabled:cursor-not-allowed w-12 h-12 flex items-center justify-center select-none hover:bg-primary/20 transition-colors"
                     >
                         -
                     </button>
@@ -399,7 +398,7 @@ function PartCalculate({
                         step={STEP_AMOUNT}
                         value={amount}
                         onChange={e => setAmount(Number(e.target.value))}
-                        className="w-full cursor-pointer accent-blue-500"
+                        className="w-full cursor-pointer accent-primary"
                     />
 
                     <button
@@ -409,7 +408,7 @@ function PartCalculate({
                         onTouchStart={() => startChange('increase')}
                         onTouchEnd={stopChange}
                         disabled={amount >= MAX_AMOUNT}
-                        className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded disabled:opacity-50 disabled:cursor-not-allowed w-12 h-12 flex items-center justify-center select-none"
+                        className="bg-primary/10 text-foreground border border-border font-bold py-2 px-4 rounded disabled:opacity-50 disabled:cursor-not-allowed w-12 h-12 flex items-center justify-center select-none hover:bg-primary/20 transition-colors"
                     >
                         +
                     </button>
@@ -417,9 +416,12 @@ function PartCalculate({
 
                 {/* عرض الرسالة المناسبة بناءً على حالة المبلغ */}
                 {amountStatus && amountStatus.message && (
-                    <div className={`text-sm  text-right rounded-lg p-2 ${amountStatus.type === 'error' ? 'text-red-500 bg-red-50' :
-                        amountStatus.type === 'warning' ? 'text-yellow-600 bg-yellow-50' :
-                            amountStatus.type === 'info' ? 'text-blue-500 bg-blue-50' : ''
+                    <div className={`text-sm text-right rounded-lg p-2 ${
+                        amountStatus.type === 'error' 
+                            ? 'text-destructive bg-destructive/10 dark:bg-destructive/20' 
+                            : amountStatus.type === 'warning' 
+                            ? 'text-yellow-600 bg-yellow-50 dark:bg-yellow-900/20 dark:text-yellow-400' 
+                            : 'text-blue-500 bg-blue-50 dark:bg-blue-900/20 dark:text-blue-400'
                         }`}>
                         {amountStatus.message}
                     </div>
@@ -436,11 +438,11 @@ function PartCalculate({
                             showDetails={showMonthsInput}
                             text="تغيير"
                             size={'small'}
-                            icon={<ArrowIcon color="white" size={20} className={`${showMonthsInput ? 'rotate-180' : ''}  transition-transform duration-300`} />}
+                            icon={<ArrowIcon color="currentColor" size={20} className={`${showMonthsInput ? 'rotate-180' : ''}  transition-transform duration-300`} />}
                         />
 
                     </div>
-                    <b className="text-blue-500 text-lg">{months} شهر</b>
+                    <b className="text-primary text-lg">{months} شهر</b>
                 </div>
 
                 <div className={`transition-all duration-500 ease-in-out overflow-hidden
@@ -453,7 +455,7 @@ function PartCalculate({
                             type="number"
                             value={months}
                             onChange={e => setMonths(Number(e.target.value))}
-                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                            className="flex-1 px-3 py-2 border border-input rounded-lg focus:outline-none focus:border-ring bg-background text-foreground"
                             placeholder="أدخل عدد الأشهر"
                         />
                         <button
@@ -461,7 +463,7 @@ function PartCalculate({
                                 setMonths(validateMonths(months));
                                 setShowMonthsInput(false);
                             }}
-                            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                            className="px-4 py-2 bg-primary/10 text-foreground border border-border rounded-lg hover:bg-primary/20 transition-colors"
                         >
                             تم
                         </button>
@@ -474,9 +476,9 @@ function PartCalculate({
                     max={currentTier?.maxMonths || 36}
                     value={months}
                     onChange={e => setMonths(Number(e.target.value))}
-                    className="w-full cursor-pointer accent-blue-500"
+                    className="w-full cursor-pointer accent-primary"
                 />
-                <div className="text-xs text-gray-500 mt-2 text-left">
+                <div className="text-xs text-muted-foreground mt-2 text-left">
                     الحد الأدنى 6 شهور | الحد الأقصى {currentTier?.maxMonths} شهر
                 </div>
             </div>
@@ -487,7 +489,7 @@ function PartCalculate({
 function RequiredDocuments({ amount }: RequiredDocumentsProps) {
     return (
         <>
-            <div className="mt-6 border-t border-gray-600 pt-4">
+            <div className="mt-6 border-t border-border pt-4">
                 <h3 className="text-lg font-bold mb-3">الأوراق المطلوبة:</h3>
                 <div className="space-y-2">
                     <div className="flex items-start">
@@ -534,7 +536,7 @@ function ShareWhatsApp({
 
     return (
         <>
-            <div className="mt-6 border-t border-gray-600 pt-4">
+            <div className="mt-6 border-t border-border pt-4">
                 <h3 className="text-lg font-bold mb-3">مشاركة عبر واتساب:</h3>
             </div>
             <div className="mt-4">
@@ -543,7 +545,7 @@ function ShareWhatsApp({
                     value={phoneNumber}
                     onChange={e => setPhoneNumber(e.target.value)}
                     placeholder="رقم الهاتف"
-                    className="w-full px-3 py-2 text-gray-800 bg-white border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                    className="w-full px-3 py-2 text-foreground bg-background border border-input rounded-lg focus:outline-none focus:border-ring"
                     pattern="[0-9]{11}"
                     maxLength={11}
                 />

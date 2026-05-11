@@ -11,6 +11,7 @@ import { IScoreCodesPage } from './pages/IscoreCodesPage.tsx';
 import { LoanCalculatorPage } from './pages/LoanCalculatorPage.tsx';
 import { paths } from './pages/paths.ts';
 import './App.css';
+import ShareDialog from './components/Dialog.tsx';
 
 function App() {
   return (
@@ -30,11 +31,12 @@ function App() {
               <div className="min-w-0">
                 <p className="text-xs font-medium text-muted-foreground">التطبيق</p>
                 <p className="truncate text-sm font-semibold sm:text-base">
-                  حاسبة القروض والأدوات
+                  حاسبة القروض 
                 </p>
               </div>
             </div>
             <div className="flex shrink-0 items-center justify-end gap-1 sm:gap-2">
+              <ShareDialog />
               <ModeToggle />
             </div>
           </header>
