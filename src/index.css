@@ -106,3 +106,10 @@ body {
     @apply font-sans;
   }
 }
+
+/* Tailwind animate durations override for slow animations */
+@supports (animation-duration: 1200ms) {
+  [data-state] {
+    --tw-animate-duration: 1200ms;
+  }
+}

@@ -80,10 +80,21 @@ export default {
           from: { opacity: "0", transform: "translate(-50%, -48%) scale(0.96)" },
           to: { opacity: "1", transform: "translate(-50%, -50%) scale(1)" },
         },
+        "sidebar-slide-in": {
+          from: {
+            opacity: "0",
+            transform: "translateX(-100%)",
+          },
+          to: {
+            opacity: "1",
+            transform: "translateX(0)",
+          },
+        },
       },
       animation: {
         "overlay-show": "overlay-show 500ms cubic-bezier(0.16, 1, 0.3, 1)",
         "content-show": "content-show 500ms cubic-bezier(0.16, 1, 0.3, 1)",
+        "sidebar-slide-in": "sidebar-slide-in 600ms cubic-bezier(0.34, 1.56, 0.64, 1)",
       },
     },
   },
