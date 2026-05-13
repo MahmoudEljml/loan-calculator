@@ -288,18 +288,30 @@ function PartCalculate({
     };
 
     const amountStatus = getAmountStatus();
+    const stopChange = useCallback(() => {
+        if (intervalRef.current) {
+            clearInterval(intervalRef.current);
+            intervalRef.current = null;
+        }
+    }, []);
 
-    // دالة مساعدة لبدء التغيير المستمر
-    const startChange = useCallback((action: 'increase' | 'decrease') => {
-        // تنفيذ التغيير فوراً عند الضغط
-        if (action === 'increase') {
-            setAmount(Math.min(MAX_AMOUNT, amount + STEP_AMOUNT));
-        } else {
-            setAmount(Math.max(MIN_AMOUNT, amount - STEP_AMOUNT));
+    // 1. أضف هذا الـ Ref في بداية مكون PartCalculate
+    const isProcessing = useRef(false);
+
+    const startChange = useCallback((e: React.MouseEvent | React.TouchEvent, action: 'increase' | 'decrease') => {
+        // إذا كانت الدالة تعمل بالفعل من حدث آخر (مثل touch بعده mouse)، اخرج فوراً
+        if (isProcessing.current) return;
+
+        // منع المتصفح من إرسال أحداث إضافية
+        if (e.cancelable) {
+            e.preventDefault();
+            e.stopPropagation();
         }
 
-        // بدء المؤقت بعد تأخير بسيط (300ms) لتجنب التغيير غير المقصود عند النقر العادي
-        intervalRef.current = setInterval(() => {
+        isProcessing.current = true; // تفعيل الحماية
+        stopChange();
+
+        const update = () => {
             setAmount((prev) => {
                 if (action === 'increase') {
                     return Math.min(MAX_AMOUNT, prev + STEP_AMOUNT);
@@ -307,16 +319,17 @@ function PartCalculate({
                     return Math.max(MIN_AMOUNT, prev - STEP_AMOUNT);
                 }
             });
-        }, 200); // سرعة التكرار (كل 100ms)
-    }, [setAmount, amount]);
+        };
 
-    // دالة مساعدة لإيقاف التغيير
-    const stopChange = useCallback(() => {
-        if (intervalRef.current) {
-            clearInterval(intervalRef.current);
-            intervalRef.current = null;
-        }
-    }, []);
+        update(); // الزيادة الأولى (1000 ج.م فقط)
+
+        intervalRef.current = window.setInterval(update, 150);
+
+        // إعادة ضبط الحماية بعد فترة قصيرة جداً (أقل من وقت استجابة الإنسان)
+        setTimeout(() => {
+            isProcessing.current = false;
+        }, 100);
+    }, [stopChange, MIN_AMOUNT, MAX_AMOUNT, STEP_AMOUNT, setAmount]);
 
     // تنظيف المؤقت عند إلغاء تحميل المكون
     useEffect(() => {
@@ -380,13 +393,14 @@ function PartCalculate({
                 {/* Added Buttons Control Wrapper */}
                 <div className="flex items-center gap-2 mb-2">
                     <button
-                        onMouseDown={() => startChange('decrease')}
+                        onMouseDown={(e) => startChange(e, 'decrease')}
+                        onTouchStart={(e) => startChange(e, 'decrease')}
                         onMouseUp={stopChange}
-                        onMouseLeave={stopChange}
-                        onTouchStart={() => startChange('decrease')}
                         onTouchEnd={stopChange}
+                        onMouseLeave={stopChange}
                         disabled={amount <= MIN_AMOUNT}
-                        className="bg-primary/10 text-foreground border border-border font-bold py-2 px-4 rounded disabled:opacity-50 disabled:cursor-not-allowed w-12 h-12 flex items-center justify-center select-none hover:bg-primary/20 transition-colors"
+                        style={{ touchAction: 'manipulation' }}
+                        className="select-none bg-primary/10 text-foreground border border-border font-bold py-2 px-4 rounded disabled:opacity-50 disabled:cursor-not-allowed w-12 h-12 flex items-center justify-center select-none hover:bg-primary/20 transition-colors"
                     >
                         -
                     </button>
@@ -402,13 +416,14 @@ function PartCalculate({
                     />
 
                     <button
-                        onMouseDown={() => startChange('increase')}
+                        onMouseDown={(e) => startChange(e, 'increase')}
+                        onTouchStart={(e) => startChange(e, 'increase')}
                         onMouseUp={stopChange}
-                        onMouseLeave={stopChange}
-                        onTouchStart={() => startChange('increase')}
                         onTouchEnd={stopChange}
+                        onMouseLeave={stopChange}
                         disabled={amount >= MAX_AMOUNT}
-                        className="bg-primary/10 text-foreground border border-border font-bold py-2 px-4 rounded disabled:opacity-50 disabled:cursor-not-allowed w-12 h-12 flex items-center justify-center select-none hover:bg-primary/20 transition-colors"
+                        style={{ touchAction: 'manipulation' }}
+                        className="select-none bg-primary/10 text-foreground border border-border font-bold py-2 px-4 rounded disabled:opacity-50 disabled:cursor-not-allowed w-12 h-12 flex items-center justify-center select-none hover:bg-primary/20 transition-colors"
                     >
                         +
                     </button>
@@ -416,11 +431,10 @@ function PartCalculate({
 
                 {/* عرض الرسالة المناسبة بناءً على حالة المبلغ */}
                 {amountStatus && amountStatus.message && (
-                    <div className={`text-sm text-right rounded-lg p-2 ${
-                        amountStatus.type === 'error' 
-                            ? 'text-destructive bg-destructive/10 dark:bg-destructive/20' 
-                            : amountStatus.type === 'warning' 
-                            ? 'text-yellow-600 bg-yellow-50 dark:bg-yellow-900/20 dark:text-yellow-400' 
+                    <div className={`text-sm text-right rounded-lg p-2 ${amountStatus.type === 'error'
+                        ? 'text-destructive bg-destructive/10 dark:bg-destructive/20'
+                        : amountStatus.type === 'warning'
+                            ? 'text-yellow-600 bg-yellow-50 dark:bg-yellow-900/20 dark:text-yellow-400'
                             : 'text-blue-500 bg-blue-50 dark:bg-blue-900/20 dark:text-blue-400'
                         }`}>
                         {amountStatus.message}

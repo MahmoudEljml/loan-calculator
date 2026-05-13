@@ -12,7 +12,7 @@ const ShareDialog = ({ url = "https://elgamal.infinityfreeapp.com" }) => {
                     type="button"
                     variant="ghost"
                     size="icon-sm"
-                    className="relative shrink-0"
+                    className="relative shrink-0 size-10"
                 >
                     <Share2 size={18} />
                 </Button>

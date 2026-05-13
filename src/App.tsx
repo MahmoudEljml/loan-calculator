@@ -28,8 +28,10 @@ function App() {
   const navigate = useNavigate()
   const isInitialized = useRef(false)
 
-  // استعادة الصفحة المحفوظة عند أول تحميل فقط
+  // --- جديد: مرجع لعنصر التمرير ---
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
+  // استعادة الصفحة المحفوظة عند أول تحميل فقط
   useEffect(() => {
     if (!isInitialized.current) {
       isInitialized.current = true
@@ -59,16 +61,27 @@ function App() {
       <TooltipProvider>
         <AppSidebar />
         <SidebarInset className="bg-background pb-[env(safe-area-inset-bottom,0px)]">
-          <header className="flex shrink-0 gap-3 border-b border-border bg-background px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-4 sm:py-3">
+          <header
+            className={`
+              flex shrink-0 gap-3 border-b border-border bg-background px-3 
+              sm:flex-row sm:items-center sm:justify-between sm:px-4 
+              transition-all duration-300 ease-in-out py-3
+            `}
+          >
             <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
-              <SidebarTrigger />
+              <SidebarTrigger className="size-10" />
             </div>
-            <div className="flex shrink-0 items-center justify-end gap-1 sm:gap-2">
+            <div className="flex shrink-0 items-center justify-end gap-1 sm:gap-2 ">
               <ShareDialog />
               <ModeToggle />
             </div>
           </header>
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain">
+
+          {/* --- تم التعديل هنا: إضافة ref للعنصر الذي يحتوي على overflow-y-auto --- */}
+          <div
+            ref={scrollContainerRef}
+            className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain"
+          >
             <div className="space-y-4 p-3 text-start sm:p-4">
               <Routes>
                 <Route path={paths.loanCalculator} element={<LoanCalculatorPage />} />

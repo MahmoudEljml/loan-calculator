@@ -24,7 +24,7 @@ export function ModeToggle() {
       type="button"
       variant="ghost"
       size="icon-sm"
-      className="relative shrink-0"
+      className="relative shrink-0 size-10"
       title={resolvedTheme === "dark" ? "تفعيل الوضع الفاتح" : "تفعيل الوضع الداكن"}
       aria-label={resolvedTheme === "dark" ? "تفعيل الوضع الفاتح" : "تفعيل الوضع الداكن"}
       onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
