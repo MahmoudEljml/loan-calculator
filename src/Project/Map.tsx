@@ -3,9 +3,11 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import geoJsonData from './Polygons/Dakahlia.json';
 import type { FeatureCollection } from 'geojson';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { MapPin, Copy } from 'lucide-react';
 
 const dakahliaData = geoJsonData as FeatureCollection;
-
 
 // طبقة خرائط Google بالعربية
 const GoogleArabicLayer = L.TileLayer.extend({
@@ -17,9 +19,9 @@ const GoogleArabicLayer = L.TileLayer.extend({
 
 // خيارات تخصيص الحدود
 const polygonOptions = {
-    fillColor: "#000000ff",
+    fillColor: "rgba(0, 0, 0, 0.301)",
     fillOpacity: 0.3,
-    color: "#000000",
+    color: "rgba(0, 0, 0, 0.09)",
     opacity: 0.8,
     weight: 1,
 };
@@ -41,14 +43,15 @@ function MapComponent({
     const mapInstanceRef = useRef<L.Map | null>(null);
     const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number } | null>(null);
     const clickMarkerRef = useRef<L.Marker | null>(null);
+    const [copySuccess, setCopySuccess] = useState(false);
 
     const copyToClipboard = async (text: string) => {
         try {
             await navigator.clipboard.writeText(text);
-            alert('تم نسخ الموقع بنجاح');
+            setCopySuccess(true);
+            setTimeout(() => setCopySuccess(false), 2000);
         } catch (err) {
             console.error('فشل نسخ الموقع:', err);
-            alert('فشل نسخ الموقع، يرجى المحاولة مرة أخرى');
         }
     };
 
@@ -63,12 +66,6 @@ function MapComponent({
 
         // إضافة طبقة خرائط Google بالعربية
         new GoogleArabicLayer().addTo(mapInstanceRef.current);
-
-        // إضافة طبقة الأسماء بالعربية
-        // L.tileLayer('https://mt1.google.com/vt/lyrs=h@221097440&hl=ar&x={x}&y={y}&z={z}', {
-        //     maxZoom: 18,
-        //     minZoom: 13,
-        // }).addTo(mapInstanceRef.current);
 
         // إنشاء طبقة GeoJSON باستخدام البيانات المستوردة
         const geoJsonLayer = L.geoJSON(dakahliaData, {
@@ -92,7 +89,7 @@ function MapComponent({
 
             // إنشاء أيقونة مخصصة للنقطة المحددة
             const clickIcon = L.divIcon({
-                html: '<div style="background: red; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 5px rgba(0,0,0,0.5);"></div>',
+                html: `<div class="w-3 h-3 bg-red-500 rounded-full border-2 border-white shadow-md"></div>`,
                 iconSize: [12, 12],
                 className: 'click-marker'
             });
@@ -110,7 +107,7 @@ function MapComponent({
 
                     // إنشاء أيقونة مخصصة لموقع المستخدم
                     const userIcon = L.divIcon({
-                        html: '<div style="background: blue; width: 15px; height: 15px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 10px rgba(0,0,0,0.5);"></div>',
+                        html: `<div class="w-4 h-4 bg-blue-500 rounded-full border-3 border-white shadow-lg"></div>`,
                         iconSize: [20, 20],
                         className: 'user-location-marker'
                     });
@@ -119,9 +116,9 @@ function MapComponent({
                     L.marker([latitude, longitude], { icon: userIcon })
                         .addTo(mapInstanceRef.current!)
                         .bindPopup(`
-                            <div style="direction: rtl; text-align: right; font-family: Arial, sans-serif;">
-                                <h3 style="margin: 0 0 10px 0; color: #333;">موقعك الحالي</h3>
-                                <p style="margin: 0; color: #666;">
+                            <div class="text-right font-sans" dir="rtl">
+                                <h3 class="text-lg font-semibold text-gray-800 mb-2">موقعك الحالي</h3>
+                                <p class="text-gray-600 text-sm">
                                     خط العرض: ${latitude.toFixed(6)}<br>
                                     خط الطول: ${longitude.toFixed(6)}
                                 </p>
@@ -148,9 +145,9 @@ function MapComponent({
             const markerInstance = L.marker(marker.position)
                 .addTo(mapInstanceRef.current!)
                 .bindPopup(`
-                    <div style="direction: rtl; text-align: right; font-family: Arial, sans-serif;">
-                        <h3 style="margin: 0 0 10px 0; color: #333;">${marker.title || ''}</h3>
-                        <p style="margin: 0; color: #666;">${marker.description || ''}</p>
+                    <div class="text-right font-sans" dir="rtl">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-2">${marker.title || ''}</h3>
+                        <p class="text-gray-600 text-sm">${marker.description || ''}</p>
                     </div>
                 `);
 
@@ -168,52 +165,35 @@ function MapComponent({
     }, [showUserLocation, markers]);
 
     return (
-        <div style={{ position: 'relative', width: '100%', height: '400px' }}>
+        <div className="relative w-full h-[400px]">
             <div
                 ref={mapRef}
-                style={{
-                    width: '100%',
-                    height: '100%',
-                    borderRadius: '12px',
-                    overflow: 'hidden',
-                    boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
-                }}
+                className="w-full h-full rounded-xl overflow-hidden shadow-lg"
             />
             {selectedLocation && (
-                <div
-                    style={{
-                        position: 'absolute',
-                        bottom: '20px',
-                        right: '20px',
-                        backgroundColor: 'white',
-                        padding: '10px',
-                        borderRadius: '8px',
-                        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '10px',
-                        direction: 'rtl',
-                        zIndex: 1000
-                    }}
-                >
-                    <span style={{ fontFamily: 'Arial, sans-serif', fontSize: '14px', direction: 'ltr' }}>
+                <Card className="absolute bottom-5 right-5 p-3 flex items-center gap-3 z-50 shadow-lg">
+                    <MapPin className="w-5 h-5 text-gray-500" />
+                    <span className="text-sm font-medium" dir='ltr'>
                         {selectedLocation.lat.toFixed(6)}, {selectedLocation.lng.toFixed(6)}
                     </span>
-                    <button
+                    <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={() => copyToClipboard(`${selectedLocation.lat.toFixed(6)}, ${selectedLocation.lng.toFixed(6)}`)}
-                        style={{
-                            padding: '5px 10px',
-                            backgroundColor: '#007bff',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '4px',
-                            cursor: 'pointer',
-                            fontSize: '14px'
-                        }}
+                        className="gap-2"
                     >
-                        نسخ
-                    </button>
-                </div>
+                        {copySuccess ? (
+                            <>
+                                <span>تم النسخ</span>
+                            </>
+                        ) : (
+                            <>
+                                <Copy className="w-4 h-4" />
+                                <span>نسخ</span>
+                            </>
+                        )}
+                    </Button>
+                </Card>
             )}
         </div>
     );

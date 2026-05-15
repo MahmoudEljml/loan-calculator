@@ -7,7 +7,9 @@ import PWABadge from './PWA/PWABadge.tsx';
 import InstallPWA from './PWA/InstallPWA.tsx';
 import { SidebarInset, SidebarProvider, SidebarTrigger } from './components/ui/sidebar';
 import { TooltipProvider } from './components/ui/tooltip';
-import { CustomersPage } from './pages/CustomersPage.tsx';
+import { ClientsPage } from './pages/ClientsPage.tsx';
+import { AddClientPage } from './pages/AddClientPage.tsx';
+import { ViewClientPage } from './pages/ViewClientPage.tsx';
 import { IScoreCodesPage } from './pages/IscoreCodesPage.tsx';
 import { LoanCalculatorPage } from './pages/LoanCalculatorPage.tsx';
 import { paths } from './pages/paths.ts';
@@ -86,7 +88,9 @@ function App() {
               <Routes>
                 <Route path={paths.loanCalculator} element={<LoanCalculatorPage />} />
                 <Route path={paths.iscoreCodes} element={<IScoreCodesPage />} />
-                <Route path={paths.customers} element={<CustomersPage />} />
+                <Route path={paths.customers} element={<ClientsPage />} />
+                <Route path={paths.addClient} element={<AddClientPage />} />
+                <Route path={paths.viewClient} element={<ViewClientPage />} />
                 <Route path="*" element={<Navigate to={paths.loanCalculator} replace />} />
               </Routes>
               <InstallPWA />

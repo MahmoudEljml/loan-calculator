@@ -59,7 +59,7 @@ export function AppSidebar() {
   }
 
   return (
-    <Sidebar collapsible="icon" variant="inset" >
+    <Sidebar collapsible="icon" variant="inset" className="text-lg">
 
       {/* ─── Header ─── */}
       <SidebarHeader >
@@ -81,8 +81,8 @@ export function AppSidebar() {
                 </div>
 
                 {/* النص - مخفي في icon mode */}
-                <div className="grid min-w-0 flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
-                  <span className="truncate font-semibold">أدوات مالية</span>
+                <div className="grid min-w-0 flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden ">
+                  <span className="truncate font-semibold text-lg">أدوات مالية</span>
                   <span className="truncate text-xs text-muted-foreground">Finance Tools</span>
                 </div>
               </NavLink>
@@ -94,21 +94,21 @@ export function AppSidebar() {
       <SidebarSeparator className="mx-0 group-data-[collapsible=icon]:opacity-0" />
 
       {/* ─── Content ─── */}
-      <SidebarContent dir="rtl">
-        <SidebarGroup >
-          <SidebarGroupLabel className="px-2">التطبيق</SidebarGroupLabel>
-          <SidebarGroupContent className="px-0">
-            <SidebarMenu>
+      <SidebarContent dir="rtl" >
+        <SidebarGroup className="gap-2" >
+          <SidebarGroupLabel className="px-2 text-lg" >التطبيق</SidebarGroupLabel>
+          <SidebarGroupContent className="px-0" >
+            <SidebarMenu  >
               {nav.map(({ to, end, label, icon: Icon }) => {
                 const isActive = end
                   ? pathname === to
                   : pathname === to || pathname.startsWith(`${to}/`)
                 return (
-                  <SidebarMenuItem key={to}>
-                    <SidebarMenuButton asChild isActive={isActive} >
+                  <SidebarMenuItem key={to}  >
+                    <SidebarMenuButton asChild isActive={isActive} className="my-2">
                       <NavLink end={end} to={to}>
                         <Icon />
-                        <span dir="rtl">{label}</span>
+                        <span dir="rtl" className=" text-lg ">{label}</span>
                       </NavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
