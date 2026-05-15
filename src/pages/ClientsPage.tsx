@@ -198,14 +198,16 @@ export function ClientsPage() {
             <p className="text-muted-foreground mb-6">
               هل أنت متأكد من رغبتك في حذف هذا العميل؟ لا يمكن التراجع عن هذا الإجراء.
             </p>
-            <div className="flex gap-2 justify-center">
+            <div className="flex gap-2 justify-center relative">
               <Button
+                className='right-0 absolute'
                 variant="outline"
                 onClick={() => setDeleteConfirm(null)}
               >
                 إلغاء
               </Button>
               <Button
+                className='left-0 absolute'
                 variant="destructive"
                 onClick={() => handleDelete(deleteConfirm)}
               >

@@ -15,6 +15,7 @@ import { LoanCalculatorPage } from './pages/LoanCalculatorPage.tsx';
 import { paths } from './pages/paths.ts';
 import './App.css';
 import ShareDialog from './components/Dialog.tsx';
+import { Toaster } from 'sonner';
 
 const STORAGE_KEY = 'loan-calculator-last-page'
 
@@ -99,6 +100,13 @@ function App() {
           </div>
         </SidebarInset>
       </TooltipProvider>
+      <Toaster
+        position="top-center"
+        richColors
+        closeButton
+        expand={false}
+        duration={3000}
+      />
     </SidebarProvider>
   );
 }

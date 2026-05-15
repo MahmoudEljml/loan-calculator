@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import MapComponent from '@/Project/Map';
 import { useClientsStorage, type ClientData } from '../hooks/useClientsStorage';
 import { ChevronRight, MapPin } from 'lucide-react';
+import useLocalStorage from '@/hooks/useLocalStorage';
 
 const emptyClient = (): Omit<ClientData, 'id'> => ({
   client_information: {
@@ -52,6 +53,7 @@ export function AddClientPage() {
   const { addClient, updateClient, getClient } = useClientsStorage();
   const [formData, setFormData] = useState<Omit<ClientData, 'id'>>(emptyClient());
   const [isEditing, setIsEditing] = useState(false);
+  const [savedCalculatorNumber] = useLocalStorage<string>('loanPhoneNumber', '');
 
   const clientId = searchParams.get('id');
 
@@ -65,6 +67,19 @@ export function AddClientPage() {
       }
     }
   }, [clientId, getClient]);
+
+  const mapMarkers = useMemo(() => [
+    {
+      position: [0.058302, 0.409740] as [number, number],
+      title: 'موقع النشاط'
+    }
+  ], []);
+  // 1. هذه الدالة الجديدة ستستقبل الإحداثيات من الخريطة وتحدث النموذج
+  const handleMapLocationSelect = useCallback((location: { lat: number; lng: number }) => {
+    const coordinatesString = `${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}`;
+    updateNestedValue('business_details.coordinates', coordinatesString);
+  }, []);
+
 
   const updateNestedValue = (path: string, value: string) => {
     setFormData((prev) => {
@@ -125,6 +140,17 @@ export function AddClientPage() {
             onChange={(val) => updateNestedValue('client_information.phone_number', val)}
             type="tel"
           />
+          <Button type="button" onClick={() => {
+            // التحقق من وجود رقم صالح (وليس مجرد علامات تنصيص)
+            if (savedCalculatorNumber && savedCalculatorNumber.length > 2) {
+              updateNestedValue('client_information.phone_number', savedCalculatorNumber);
+            } else {
+              alert('لا يوجد رقم هاتف صالح محفوظ');
+            }
+          }}
+          >اضافة الرقم المسجل فى الحاسبة
+          </Button>
+
           <FieldInput
             label="عنوان الإقامة الدائم"
             value={formData.client_information.permanent_address.val}
@@ -140,17 +166,23 @@ export function AddClientPage() {
         {/* تفاصيل النشاط */}
         <Section title="تفاصيل النشاط">
           <FieldInput
+            dir="ltr"
             label="إحداثيات خطوط الطول والعرض"
             value={formData.business_details.coordinates.val}
             onChange={(val) => updateNestedValue('business_details.coordinates', val)}
             readOnly
           />
+
           <div className="rounded-lg border overflow-hidden">
             <div className="flex items-center gap-2 p-3 bg-muted/50">
               <MapPin className="w-4 h-4" />
               <span className="text-sm font-medium">انقر على الخريطة لاختيار الموقع</span>
             </div>
-            <MapComponent showUserLocation={true} markers={[{ position: [31.058302, 31.409740], title: 'موقع النشاط' }]} />
+            <MapComponent
+              showUserLocation={true}
+              markers={mapMarkers}
+              onLocationSelect={handleMapLocationSelect}
+            />
           </div>
 
           <FieldInput
@@ -295,12 +327,14 @@ function FieldInput({
   onChange,
   type = 'text',
   readOnly = false,
+  dir,
 }: {
   label: string;
   value: string;
   onChange: (val: string) => void;
   type?: string;
   readOnly?: boolean;
+  dir?: string;
 }) {
   return (
     <div>
@@ -311,6 +345,7 @@ function FieldInput({
         onChange={(e) => onChange(e.target.value)}
         placeholder={label}
         readOnly={readOnly}
+        dir={dir}
         className="w-full"
       />
     </div>

@@ -3,13 +3,13 @@ import { useClientsStorage } from '../hooks/useClientsStorage';
 import { Button } from '../components/ui/button';
 import { ChevronRight, Edit2, ArrowLeft, Phone, MapPin, Briefcase, User, Calendar } from 'lucide-react';
 
-function isJobDetails(value: any): value is {
-  job_title: { val: string; label: string };
-  workplace: { val: string; label: string };
-  years_of_experience: { val: string; label: string };
-} {
-  return value && typeof value === 'object' && 'job_title' in value;
-}
+// function isJobDetails(value: any): value is {
+//   job_title: { val: string; label: string };
+//   workplace: { val: string; label: string };
+//   years_of_experience: { val: string; label: string };
+// } {
+//   return value && typeof value === 'object' && 'job_title' in value;
+// }
 
 export function ViewClientPage() {
   const navigate = useNavigate();
@@ -122,6 +122,7 @@ export function ViewClientPage() {
             </div>
             <div className="md:col-span-2">
               <InfoField
+                dir="ltr"
                 label="إحداثيات خطوط الطول والعرض"
                 value={client.business_details.coordinates.val}
                 icon={<MapPin className="w-4 h-4" />}
@@ -292,30 +293,30 @@ function InfoField({
   value,
   icon,
   highlight = false,
+  dir
 }: {
   label: string;
   value: string;
   icon?: React.ReactNode;
   highlight?: boolean;
+  dir?: string;
 }) {
   return (
     <div
-      className={`space-y-2 p-3 rounded-lg transition-colors ${
-        highlight
-          ? 'bg-primary/10 border border-primary/20'
-          : 'bg-muted/50 hover:bg-muted'
-      }`}
+      className={`space-y-2 p-3 rounded-lg transition-colors ${highlight
+        ? 'bg-primary/10 border border-primary/20'
+        : 'bg-muted/50 hover:bg-muted'
+        }`}
     >
       <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-2">
         {icon}
         {label}
       </label>
-      <p
-        className={`text-sm font-medium ${
-          value ? 'text-foreground' : 'text-muted-foreground italic'
-        }`}
+      <p dir={dir}
+        className={`text-sm font-medium ${value ? 'text-foreground' : 'text-muted-foreground italic'
+          }`}
       >
-        {value || 'لم يتم التحديد'}
+        {value || 'not set'}
       </p>
     </div>
   );

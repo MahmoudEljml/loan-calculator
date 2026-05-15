@@ -9,30 +9,8 @@ import ArrowIcon from "../IconSVG/ArrowIcon";
 // import MapComponent from "./Map";
 // import CustomDialog from '../components/Dialog';
 // import MapComponent from "./Map";
+import useLocalStorage from '@/hooks/useLocalStorage'; 
 
-const useLocalStorage = <T,>(key: string, initialValue: T) => {
-    const [storedValue, setStoredValue] = useState<T>(() => {
-        try {
-            const item = window.localStorage.getItem(key);
-            return item ? JSON.parse(item) : initialValue;
-        } catch (error) {
-            console.log(error);
-            return initialValue;
-        }
-    });
-
-    const setValue = (value: T | ((val: T) => T)) => {
-        try {
-            const valueToStore = value instanceof Function ? value(storedValue) : value;
-            setStoredValue(valueToStore);
-            window.localStorage.setItem(key, JSON.stringify(valueToStore));
-        } catch (error) {
-            console.log(error);
-        }
-    };
-
-    return [storedValue, setValue] as [T, typeof setValue];
-};
 
 const getRequiredDocuments = (amount: number) => {
     const personalDocuments = ['صورة البطاقة الشخصية'];
@@ -64,7 +42,7 @@ const ProfessionalLoanCalculator = () => {
     } | null>(null);
     const [showAmountInput, setShowAmountInput] = useState(false);
     const [showMonthsInput, setShowMonthsInput] = useState(false);
-    const [phoneNumber, setPhoneNumber] = useState('01');
+    const [phoneNumber, setPhoneNumber] = useLocalStorage<string>('loanPhoneNumber', '01');
     const [shareOptions, setShareOptions] = useLocalStorage('loanShareOptions', {
         monthlyPayment: true,
         totalInterest: false,

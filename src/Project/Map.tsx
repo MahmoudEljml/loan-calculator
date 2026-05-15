@@ -1,11 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import geoJsonData from './Polygons/Dakahlia.json';
 import type { FeatureCollection } from 'geojson';
-import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { MapPin, Copy } from 'lucide-react';
+import { MapPin, Check, Maximize2, Minimize2 } from 'lucide-react';
+import { toast, Toaster } from 'sonner';
 
 const dakahliaData = geoJsonData as FeatureCollection;
 
@@ -22,7 +22,7 @@ const polygonOptions = {
     fillColor: "rgba(0, 0, 0, 0.301)",
     fillOpacity: 0.3,
     color: "rgba(0, 0, 0, 0.09)",
-    opacity: 0.8,
+    opacity: 0,
     weight: 1,
 };
 
@@ -33,27 +33,89 @@ interface MapComponentProps {
         description?: string;
     }>;
     showUserLocation?: boolean;
+    onLocationSelect?: (location: { lat: number; lng: number }) => void;
 }
 
 function MapComponent({
     markers = [],
-    showUserLocation = true
+    showUserLocation = true,
+    onLocationSelect
 }: MapComponentProps) {
     const mapRef = useRef<HTMLDivElement>(null);
     const mapInstanceRef = useRef<L.Map | null>(null);
     const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number } | null>(null);
+    const [isFullscreen, setIsFullscreen] = useState(false);
+    const [isDarkMode, setIsDarkMode] = useState(false);
     const clickMarkerRef = useRef<L.Marker | null>(null);
-    const [copySuccess, setCopySuccess] = useState(false);
+    const mapContainerRef = useRef<HTMLDivElement>(null);
 
-    const copyToClipboard = async (text: string) => {
-        try {
-            await navigator.clipboard.writeText(text);
-            setCopySuccess(true);
-            setTimeout(() => setCopySuccess(false), 2000);
-        } catch (err) {
-            console.error('فشل نسخ الموقع:', err);
+    // دالة للتعامل مع الضغط على زر التأكيد
+    const handleConfirmLocation = (e: React.MouseEvent) => {
+        e.preventDefault();
+        if (selectedLocation && onLocationSelect) {
+            onLocationSelect(selectedLocation);
+            
+            // إظهار إشعار عند إضافة الموقع
+            toast.success('تمت تغيير الإحداثيات بنجاح', {
+                description: `خط العرض: ${selectedLocation.lat.toFixed(6)}, خط الطول: ${selectedLocation.lng.toFixed(6)}`,
+                duration: 3000,
+                position: 'top-center',
+            });
         }
     };
+
+    // دالة للتبديل بين وضع ملء الشاشة والوضع العادي
+    const toggleFullscreen = (e: React.MouseEvent) => {
+        e.preventDefault();
+        if (!document.fullscreenElement) {
+            mapContainerRef.current?.requestFullscreen().catch(err => {
+                console.error(`Error attempting to enable fullscreen: ${err.message}`);
+            });
+            setIsFullscreen(true);
+        } else {
+            document.exitFullscreen();
+            setIsFullscreen(false);
+        }
+    };
+
+    // التحقق من الوضع الليلي
+    useEffect(() => {
+        const checkDarkMode = () => {
+            setIsDarkMode(document.documentElement.classList.contains('dark'));
+        };
+
+        // Check initially
+        checkDarkMode();
+
+        // Set up a mutation observer to watch for class changes on the html element
+        const observer = new MutationObserver(checkDarkMode);
+        observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+
+        return () => {
+            observer.disconnect();
+        };
+    }, []);
+
+    // الاستماع لتغييرات وضع ملء الشاشة
+    useEffect(() => {
+        const handleFullscreenChange = () => {
+            setIsFullscreen(!!document.fullscreenElement);
+        };
+
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        return () => {
+            document.removeEventListener('fullscreenchange', handleFullscreenChange);
+        };
+    }, []);
+
+    // تحديث حجم الخريطة عند تغيير وضع ملء الشاشة
+    useEffect(() => {
+        if (mapInstanceRef.current) {
+            setTimeout(() => {
+                mapInstanceRef.current?.invalidateSize();
+            }, 100);
+        }
+    }, [isFullscreen]);
 
     useEffect(() => {
         if (!mapRef.current || mapInstanceRef.current) return;
@@ -107,7 +169,7 @@ function MapComponent({
 
                     // إنشاء أيقونة مخصصة لموقع المستخدم
                     const userIcon = L.divIcon({
-                        html: `<div class="w-4 h-4 bg-blue-500 rounded-full border-3 border-white shadow-lg"></div>`,
+                        html: `<div class="w-3 h-3 bg-blue-500 rounded-full border-3 border-white shadow-lg"></div>`,
                         iconSize: [20, 20],
                         className: 'user-location-marker'
                     });
@@ -165,38 +227,51 @@ function MapComponent({
     }, [showUserLocation, markers]);
 
     return (
-        <div className="relative w-full h-[400px]">
-            <div
-                ref={mapRef}
-                className="w-full h-full rounded-xl overflow-hidden shadow-lg"
-            />
+        <div ref={mapContainerRef} className={`relative w-full ${isFullscreen ? 'h-screen' : 'h-[400px]'}`}>
+            <div style={{ zIndex: 0 }} ref={mapRef} className="w-full h-full rounded-xl overflow-hidden shadow-lg" />
+
+            {/* زر ملء الشاشة */}
+            <button
+                onClick={(e) => toggleFullscreen(e)}
+                className={`absolute top-4 right-4 z-10 p-2 rounded-lg shadow-md transition-colors ${isDarkMode
+                        ? 'bg-gray-800 text-white hover:bg-gray-700'
+                        : 'bg-white text-gray-800 hover:bg-gray-100'
+                    }`}
+                title={isFullscreen ? "خروج من ملء الشاشة" : "ملء الشاشة"}
+            >
+                {isFullscreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
+            </button>
+
             {selectedLocation && (
-                <Card className="absolute bottom-5 right-5 p-3 flex items-center gap-3 z-50 shadow-lg">
+                <Card className="absolute bottom-5 right-5 p-3 flex-row items-center gap-3 z-0 shadow-lg">
                     <MapPin className="w-5 h-5 text-gray-500" />
                     <span className="text-sm font-medium" dir='ltr'>
                         {selectedLocation.lat.toFixed(6)}, {selectedLocation.lng.toFixed(6)}
                     </span>
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => copyToClipboard(`${selectedLocation.lat.toFixed(6)}, ${selectedLocation.lng.toFixed(6)}`)}
-                        className="gap-2"
+                    <div
+                        onClick={handleConfirmLocation}
+                        className="inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground shadow hover:bg-primary/90 h-8 px-4 py-2 cursor-pointer"
                     >
-                        {copySuccess ? (
-                            <>
-                                <span>تم النسخ</span>
-                            </>
-                        ) : (
-                            <>
-                                <Copy className="w-4 h-4" />
-                                <span>نسخ</span>
-                            </>
-                        )}
-                    </Button>
+                        <Check className="w-4 h-4" />
+                        <span>تأكيد</span>
+                    </div>
                 </Card>
+            )}
+
+            {/* Toaster component for fullscreen mode */}
+            {isFullscreen && (
+                <Toaster 
+                    position="top-center"
+                    richColors
+                    closeButton
+                    expand={false}
+                    duration={3000}
+                    theme={isDarkMode ? "dark" : "light"}
+                    className="z-[9999]"
+                />
             )}
         </div>
     );
 }
 
-export default MapComponent;
+export default React.memo(MapComponent);
