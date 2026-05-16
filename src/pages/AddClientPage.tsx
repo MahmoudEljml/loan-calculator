@@ -208,8 +208,8 @@ export function AddClientPage() {
           />
         </Section>
 
-        {/* بيانات الكفيل الأول */}
-        <Section title="بيانات الكفيل الأول">
+        {/* بيانات الضامن الأول */}
+        <Section title="بيانات الضامن الأول">
           <FieldInput
             label="الاسم"
             value={formData.guarantors_details.first_guarantor.full_name.val}
@@ -253,8 +253,8 @@ export function AddClientPage() {
           </div>
         </Section>
 
-        {/* بيانات الكفيل الثاني */}
-        <Section title="بيانات الكفيل الثاني">
+        {/* بيانات الضامن الثاني */}
+        <Section title="بيانات الضامن الثاني">
           <FieldInput
             label="الاسم"
             value={formData.guarantors_details.second_guarantor.full_name.val}

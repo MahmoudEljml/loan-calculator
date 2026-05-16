@@ -42,7 +42,7 @@ function PWABadge() {
         && (
           <div className="PWABadge-toast">
             <div className="PWABadge-message">
-              <span id="toast-message">التطبيق جاهز للعمل دون اتصال.</span>
+              <span id="toast-message" dir='rtl'>التطبيق جاهز للعمل دون اتصال.</span>
             </div>
             <div className="PWABadge-buttons">
               <button type="button" className="PWABadge-toast-button" onClick={() => close()}>
@@ -55,7 +55,7 @@ function PWABadge() {
         && (
           <div className="PWABadge-toast">
             <div className="PWABadge-message">
-              <span id="toast-message">يتوفر محتوى جديد. اضغط «إعادة التحميل» للتحديث.</span>
+              <span id="toast-message" dir='rtl'>يتوفر محتوى جديد. اضغط «إعادة التحميل» للتحديث.</span>
             </div>
             <div className="PWABadge-buttons">
               <button type="button" className="PWABadge-toast-button" onClick={() => updateServiceWorker(true)}>

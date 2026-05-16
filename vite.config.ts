@@ -2,6 +2,9 @@ import { VitePWA } from "vite-plugin-pwa";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
+import { readFileSync } from "fs";
+
+const pkg = JSON.parse(readFileSync("./package.json", "utf-8"));
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -29,7 +32,7 @@ export default defineConfig({
         cleanupOutdatedCaches: true,
         clientsClaim: true,
         skipWaiting: true,
-        cacheId: "loan-calculator-v2.4",
+        cacheId: `loan-calculator-${pkg.version}`,
         // تفعيل تتبع التحليلات في وضع الأوفلاين
         offlineGoogleAnalytics: true,
         runtimeCaching: [

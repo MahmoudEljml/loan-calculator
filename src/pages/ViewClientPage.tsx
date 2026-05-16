@@ -132,11 +132,11 @@ export function ViewClientPage() {
           </div>
         </Section>
 
-        {/* بيانات الكفيل الأول */}
+        {/* بيانات الضامن الأول */}
         <Section
-          title="بيانات الكفيل الأول"
+          title="بيانات الضامن الأول"
           icon={<User className="w-5 h-5" />}
-          subtitle="معلومات الكفيل الأول"
+          subtitle="معلومات الضامن الأول"
         >
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -184,11 +184,11 @@ export function ViewClientPage() {
           </div>
         </Section>
 
-        {/* بيانات الكفيل الثاني */}
+        {/* بيانات الضامن الثاني */}
         <Section
-          title="بيانات الكفيل الثاني"
+          title="بيانات الضامن الثاني"
           icon={<User className="w-5 h-5" />}
-          subtitle="معلومات الكفيل الثاني"
+          subtitle="معلومات الضامن الثاني"
         >
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

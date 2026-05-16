@@ -40,7 +40,7 @@ function InstallPWA() {
     <div className="PWABadge PWABadge-install" role="dialog" aria-label="تثبيت التطبيق">
       <div className="PWABadge-toast">
         <div className="PWABadge-message">
-          <span>ثبّت التطبيق للوصول السريع من الشاشة الرئيسية.</span>
+          <span dir='rtl'>ثبّت التطبيق للوصول السريع من الشاشة الرئيسية.</span>
         </div>
         <div className="PWABadge-buttons">
           <button type="button" className="PWABadge-toast-button" onClick={handleInstall}>
