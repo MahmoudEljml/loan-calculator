@@ -15,7 +15,8 @@ import {
   SidebarSeparator,
 } from "./ui/sidebar"
 import { paths } from "@/pages/paths"
-
+// 1. استيراد ملف الباكج لجلب رقم الإصدار
+import pkg from '../../package.json'
 
 const nav = [
   {
@@ -124,7 +125,10 @@ export function AppSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton onClick={clearPwaCacheAndReload}>
-              <span>clear cache</span>
+              <div className="flex w-full justify-between items-center">
+                <span>clear cache</span>
+                <span>v {pkg.version}</span>
+              </div>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

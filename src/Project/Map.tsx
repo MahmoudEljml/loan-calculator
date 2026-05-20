@@ -233,7 +233,7 @@ function MapComponent({
             {/* زر ملء الشاشة */}
             <button
                 onClick={(e) => toggleFullscreen(e)}
-                className={`absolute top-4 right-4 z-10 p-2 rounded-lg shadow-md transition-colors ${isDarkMode
+                className={`absolute top-4 right-4 p-2 rounded-lg shadow-md transition-colors ${isDarkMode
                         ? 'bg-gray-800 text-white hover:bg-gray-700'
                         : 'bg-white text-gray-800 hover:bg-gray-100'
                     }`}
