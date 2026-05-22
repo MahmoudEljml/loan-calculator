@@ -1,4 +1,4 @@
-import { Calculator, Hash, Users } from "lucide-react"
+import { Calculator, Hash, Users, Receipt } from "lucide-react"
 import { NavLink, useLocation } from "react-router-dom"
 import {
   Sidebar,
@@ -36,6 +36,12 @@ const nav = [
     end: false,
     label: "بيانات العملاء",
     icon: Users,
+  },
+  {
+    to: paths.installments,
+    end: false,
+    label: "الأقساط",
+    icon: Receipt,
   },
 ] as const
 

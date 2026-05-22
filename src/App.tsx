@@ -12,6 +12,8 @@ import { AddClientPage } from './pages/AddClientPage.tsx';
 import { ViewClientPage } from './pages/ViewClientPage.tsx';
 import { IScoreCodesPage } from './pages/IscoreCodesPage.tsx';
 import { LoanCalculatorPage } from './pages/LoanCalculatorPage.tsx';
+import { InstallmentsPage } from './pages/InstallmentsPage.tsx';
+import { EditInstallmentPage } from './pages/EditInstallmentPage.tsx';
 import { paths } from './pages/paths.ts';
 import './App.css';
 import ShareDialog from './components/Dialog.tsx';
@@ -92,6 +94,8 @@ function App() {
                 <Route path={paths.customers} element={<ClientsPage />} />
                 <Route path={paths.addClient} element={<AddClientPage />} />
                 <Route path={paths.viewClient} element={<ViewClientPage />} />
+                <Route path={paths.installments} element={<InstallmentsPage />} />
+                <Route path={paths.editInstallment} element={<EditInstallmentPage />} />
                 <Route path="*" element={<Navigate to={paths.loanCalculator} replace />} />
               </Routes>
               <InstallPWA />
