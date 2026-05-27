@@ -1,12 +1,12 @@
 import type { CSSProperties } from 'react';
 import { useEffect, useRef } from 'react';
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
-import { AppSidebar } from './components/app-sidebar.tsx';
-import { ModeToggle } from './components/mode-toggle.tsx';
+import { AppSidebar } from '@/components/app-sidebar.tsx';
+import { ModeToggle } from '@/components/mode-toggle.tsx';
 import PWABadge from './PWA/PWABadge.tsx';
 import InstallPWA from './PWA/InstallPWA.tsx';
-import { SidebarInset, SidebarProvider, SidebarTrigger } from './components/ui/sidebar';
-import { TooltipProvider } from './components/ui/tooltip';
+import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { ClientsPage } from './pages/ClientsPage.tsx';
 import { AddClientPage } from './pages/AddClientPage.tsx';
 import { ViewClientPage } from './pages/ViewClientPage.tsx';
@@ -16,7 +16,7 @@ import { InstallmentsPage } from './pages/InstallmentsPage.tsx';
 import { EditInstallmentPage } from './pages/EditInstallmentPage.tsx';
 import { paths } from './pages/paths.ts';
 import './App.css';
-import ShareDialog from './components/Dialog.tsx';
+import ShareDialog from '@/components/Dialog.tsx';
 import { Toaster } from 'sonner';
 
 const STORAGE_KEY = 'loan-calculator-last-page'

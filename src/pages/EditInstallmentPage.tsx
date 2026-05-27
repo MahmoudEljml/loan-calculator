@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { useInstallmentsStorage } from '../hooks/useInstallmentsStorage';
 import { ArrowRight, Trash2, Plus, MessageSquare, X, Image as ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
-import { ImageViewer } from '../components/ImageViewer';
+import { ImageViewer } from '@/components/ImageViewer';
 
 export function EditInstallmentPage() {
   const navigate = useNavigate();

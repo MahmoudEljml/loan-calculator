@@ -1,6 +1,6 @@
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useClientsStorage } from '../hooks/useClientsStorage';
-import { Button } from '../components/ui/button';
+import { Button } from '@/components/ui/button';
 import { ChevronRight, Edit2, ArrowLeft, Phone, MapPin, Briefcase, User, Calendar } from 'lucide-react';
 
 // function isJobDetails(value: any): value is {
