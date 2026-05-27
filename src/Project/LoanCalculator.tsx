@@ -3,8 +3,8 @@ import LoanDetails from "./LoanDetails";
 // import MapComponent from "./Map";
 import { loanData } from "./Data";
 import type { PartCalculateProps, RequiredDocumentsProps, ShareWhatsAppProps } from "./types";
-import FAB from "../components/FAB";
-import ArrowIcon from "../IconSVG/ArrowIcon";
+import FAB from "@/components/FAB";
+import ArrowIcon from "@/IconSVG/ArrowIcon";
 // import CurrentChipInformation from "./CurrentChipInformation";
 import useLocalStorage from '@/hooks/useLocalStorage'; 
 
