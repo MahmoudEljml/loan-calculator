@@ -71,3 +71,4 @@ export default defineConfig([
   },
 ])
 ```
+# loan-calculator
