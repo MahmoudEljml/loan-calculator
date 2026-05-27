@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { X } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from './ui/button';
 
 interface ImageViewerProps {
@@ -77,6 +77,30 @@ export function ImageViewer({ images, initialIndex = 0, onClose }: ImageViewerPr
         </Button>
       </div>
 
+      {/* Previous Button */}
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={handlePrevious}
+        disabled={currentIndex === 0}
+        className="absolute left-4 z-10 text-white bg-black/50 hover:bg-black/70 disabled:opacity-30 transition-all duration-200 backdrop-blur-sm rounded-full"
+      >
+        <ChevronLeft className="w-8 h-8" />
+      </Button>
+
+      {/* Next Button */}
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={handleNext}
+        disabled={currentIndex === images.length - 1}
+        className="absolute right-4 z-10 text-white bg-black/50 hover:bg-black/70 disabled:opacity-30 transition-all duration-200 backdrop-blur-sm rounded-full"
+      >
+        <ChevronRight className="w-8 h-8" />
+      </Button>
+
+
+
       {/* Image */}
       <img
         src={currentImage}
@@ -84,6 +108,9 @@ export function ImageViewer({ images, initialIndex = 0, onClose }: ImageViewerPr
         className="w-full h-full object-contain"
         draggable={false}
       />
+
+
+
     </div>
   );
 }

@@ -169,16 +169,8 @@ export function InstallmentsPage() {
           <div key={installment.id} className="border rounded-lg p-4 bg-card hover:bg-muted/50 transition-colors">
             <div className="space-y-3">
               <div className="flex gap-3 items-start justify-between">
-                {installment.clientImages.length > 0 && (
-                  <img
-                    src={installment.clientImages[0]}
-                    alt="صورة العميل"
-                    className="w-12 h-12 object-cover rounded"
-                  />
-                )}
                 <div className="flex-1">
                   <p className="font-semibold">{installment.clientName || 'غير محدد'}</p>
-                  <p className="text-sm text-muted-foreground">{installment.clientPhone}</p>
                 </div>
                 <span className={`px-2 py-1 rounded text-xs font-semibold ${getStatusColor(installment.status)}`}>
                   {getStatusLabel(installment.status)}
@@ -186,19 +178,15 @@ export function InstallmentsPage() {
               </div>
               <div className="text-sm space-y-1 border-t pt-2">
                 <p>
+                  <span className="font-medium">رقم الهاتف:</span> {installment.clientPhone}
+                </p>
+                <p>
                   <span className="font-medium">القسط:</span> {installment.installmentAmount} ج.م
                 </p>
                 <p>
                   <span className="font-medium">الاستحقاق:</span> {new Date(installment.dueDate).toLocaleDateString('ar-EG')}
                 </p>
-                <p>
-                  <span className="font-medium">الضامن:</span> {installment.firstGuarantorName || '-'}
-                </p>
-                {installment.clientImages.length > 0 && (
-                  <p>
-                    <span className="font-medium">الصور:</span> {installment.clientImages.length}
-                  </p>
-                )}
+
               </div>
               <div className="flex gap-2 pt-2 border-t flex-wrap">
                 <Button

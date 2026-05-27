@@ -6,9 +6,6 @@ import type { PartCalculateProps, RequiredDocumentsProps, ShareWhatsAppProps } f
 import FAB from "../components/FAB";
 import ArrowIcon from "../IconSVG/ArrowIcon";
 // import CurrentChipInformation from "./CurrentChipInformation";
-// import MapComponent from "./Map";
-// import CustomDialog from '../components/Dialog';
-// import MapComponent from "./Map";
 import useLocalStorage from '@/hooks/useLocalStorage'; 
 
 
@@ -45,8 +42,8 @@ const ProfessionalLoanCalculator = () => {
     const [phoneNumber, setPhoneNumber] = useLocalStorage<string>('loanPhoneNumber', '01');
     const [shareOptions, setShareOptions] = useLocalStorage('loanShareOptions', {
         monthlyPayment: true,
-        totalInterest: false,
-        totalAmount: false,
+        // totalInterest: false,
+        // totalAmount: false,
         adminFees: false,
         insuranceFees: false, // Added insurance fees to share options
         interest: false,
@@ -92,13 +89,13 @@ const ProfessionalLoanCalculator = () => {
             message += `القسط الشهري: ${results.monthlyPayment.toLocaleString()} ج.م\n`;
         }
 
-        if (shareOptions.totalInterest) {
-            message += `إجمالي الفوائد: ${results.totalInterest.toLocaleString()} ج.م\n`;
-        }
+        // if (shareOptions.totalInterest) {
+        //     message += `إجمالي الفوائد: ${results.totalInterest.toLocaleString()} ج.م\n`;
+        // }
 
-        if (shareOptions.totalAmount) {
-            message += `إجمالي الاقساط: ${results.totalAmount.toLocaleString()} ج.م\n`;
-        }
+        // if (shareOptions.totalAmount) {
+        //     message += `إجمالي الاقساط: ${results.totalAmount.toLocaleString()} ج.م\n`;
+        // }
 
         if (shareOptions.adminFees) {
             message += `المصاريف الإدارية: ${results.adminFees.toLocaleString()} ج.م (${currentTier.fees}%)\n`;

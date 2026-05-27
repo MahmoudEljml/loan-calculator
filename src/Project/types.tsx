@@ -11,8 +11,8 @@ export interface LoanTier {
 
 export interface ShareOptions {
     monthlyPayment: boolean;
-    totalInterest: boolean;
-    totalAmount: boolean;
+    // totalInterest: boolean;
+    // totalAmount: boolean;
     adminFees: boolean;
     insuranceFees: boolean;
     interest: boolean;
