@@ -18,6 +18,7 @@ import { paths } from './pages/paths.ts';
 import './App.css';
 import ShareDialog from '@/components/Dialog.tsx';
 import { Toaster } from 'sonner';
+import { Button } from './components/ui/button.tsx';
 
 const STORAGE_KEY = 'loan-calculator-last-page'
 
@@ -111,6 +112,13 @@ function App() {
         expand={false}
         duration={3000}
       />
+      <Button onClick={() => {
+        fetch('https://jsonplaceholder.typicode.com/todos/1')
+          .then(response => response.json())
+          .then(json => console.log(json))
+      }} >
+        test
+      </Button>
     </SidebarProvider>
   );
 }
