@@ -1,0 +1,108 @@
+/* جذر بعرض/ارتفاع الشاشة بدون تمرير مزدوج — التمرير داخل SidebarInset فقط */
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+}
+
+#root {
+  height: 100%;
+  min-height: 100dvh;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+/* Custom animations for mobile sidebar - gradual appearance */
+@keyframes slideInFromLeft {
+  0% {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideOutToLeft {
+  0% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+}
+
+@keyframes fadeInOverlay {
+  0% {
+    opacity: 0;
+    backdrop-filter: blur(0);
+  }
+  100% {
+    opacity: 1;
+    backdrop-filter: blur(4px);
+  }
+}
+
+@keyframes fadeOutOverlay {
+  0% {
+    opacity: 1;
+    backdrop-filter: blur(4px);
+  }
+  100% {
+    opacity: 0;
+    backdrop-filter: blur(0);
+  }
+}
+
+/* Apply gradual animation to sheet overlay */
+[data-slot="sheet-overlay"][data-state="open"] {
+  animation: fadeInOverlay 100ms ease-out forwards !important;
+}
+
+[data-slot="sheet-overlay"][data-state="closed"] {
+  animation: fadeOutOverlay 100ms ease-in forwards !important;
+}
+
+/* Apply gradual animation to sheet content (sidebar on mobile) */
+[data-slot="sheet-content"][data-side="left"][data-state="open"] {
+  animation: slideInFromLeft 100ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards !important;
+}
+
+[data-slot="sheet-content"][data-side="left"][data-state="closed"] {
+  animation: slideOutToLeft 100ms ease-in forwards !important;
+}
+
+[data-slot="sheet-content"][data-side="right"][data-state="open"] {
+  animation: slideInFromRight 100ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards !important;
+}
+
+[data-slot="sheet-content"][data-side="right"][data-state="closed"] {
+  animation: slideOutToRight 100ms ease-in forwards !important;
+}
+
+@keyframes slideInFromRight {
+  0% {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideOutToRight {
+  0% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+}
