@@ -17,7 +17,7 @@ import { EditInstallmentPage } from './pages/EditInstallmentPage.tsx';
 import { paths } from './pages/paths.ts';
 import './App.css';
 import ShareDialog from '@/components/Dialog.tsx';
-import { Toaster } from 'sonner';
+import { Toaster } from '@/components/ui/sonner.tsx';
 // import { Button } from './components/ui/button.tsx';
 
 const STORAGE_KEY = 'loan-calculator-last-page'
@@ -105,6 +105,7 @@ function App() {
           </div>
         </SidebarInset>
       </TooltipProvider>
+
       <Toaster
         position="top-center"
         richColors

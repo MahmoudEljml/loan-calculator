@@ -5,9 +5,12 @@ import geoJsonData from './Polygons/Dakahlia.json';
 import type { FeatureCollection } from 'geojson';
 import { Card } from '@/components/ui/card';
 import { MapPin, Check, Maximize2, Minimize2, Search } from 'lucide-react';
-import { toast, Toaster } from 'sonner';
-// @ts-ignore
+import { Toaster } from '@/components/ui/sonner';
+import { toast } from 'sonner';
+// @ts-expect-error - open-location-code doesn't have TypeScript type definitions
 import { OpenLocationCode } from 'open-location-code';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 const dakahliaData = geoJsonData as FeatureCollection;
 
@@ -47,7 +50,7 @@ function MapComponent({
     const mapInstanceRef = useRef<L.Map | null>(null);
     const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number } | null>(null);
     const [isFullscreen, setIsFullscreen] = useState(false);
-    const [isDarkMode, setIsDarkMode] = useState(false);
+    // const [isDarkMode, setIsDarkMode] = useState(false);
     const [plusCode, setPlusCode] = useState('');
     const clickMarkerRef = useRef<L.Marker | null>(null);
     const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -55,7 +58,7 @@ function MapComponent({
     // دالة للتعامل مع البحث عن كود Plus Code أو الإحداثيات الجغرافية
     const handleSearchPlusCode = () => {
         if (!plusCode.trim()) {
-            toast.error('الرجاء إدخال كود Plus Code أو إحداثيات');
+            toast.error('الرجاء إدخال Plus Code أو إحداثيات DMS');
             return;
         }
 
@@ -148,6 +151,7 @@ function MapComponent({
                     description: `خط العرض: ${latitude.toFixed(6)}, خط الطول: ${longitude.toFixed(6)}`,
                     duration: 3000,
                     position: 'top-center',
+
                 });
             } else {
                 throw new Error('فشل في تحديد الموقع');
@@ -155,7 +159,7 @@ function MapComponent({
         } catch (error) {
             console.error('Error processing location:', error);
             toast.error('خطأ في معالجة الموقع', {
-                description: 'الرجاء التأكد من صحة الكود أو الإحداثيات المدخلة والمحاولة مرة أخرى',
+                description: 'الرجاء إدخال Plus Code أو إحداثيات DMS',
                 duration: 3000,
                 position: 'top-center',
             });
@@ -191,22 +195,22 @@ function MapComponent({
     };
 
     // التحقق من الوضع الليلي
-    useEffect(() => {
-        const checkDarkMode = () => {
-            setIsDarkMode(document.documentElement.classList.contains('dark'));
-        };
+    // useEffect(() => {
+    //     const checkDarkMode = () => {
+    //         setIsDarkMode(document.documentElement.classList.contains('dark'));
+    //     };
 
-        // Check initially
-        checkDarkMode();
+    //     // Check initially
+    //     checkDarkMode();
 
-        // Set up a mutation observer to watch for class changes on the html element
-        const observer = new MutationObserver(checkDarkMode);
-        observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    //     // Set up a mutation observer to watch for class changes on the html element
+    //     const observer = new MutationObserver(checkDarkMode);
+    //     observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
 
-        return () => {
-            observer.disconnect();
-        };
-    }, []);
+    //     return () => {
+    //         observer.disconnect();
+    //     };
+    // }, []);
 
     // الاستماع لتغييرات وضع ملء الشاشة
     useEffect(() => {
@@ -234,7 +238,7 @@ function MapComponent({
 
         // إنشاء الخريطة
         mapInstanceRef.current = L.map(mapRef.current, {
-            zoomControl: true,
+            zoomControl: false,
             attributionControl: false,
         });
 
@@ -342,44 +346,36 @@ function MapComponent({
         <div ref={mapContainerRef} className={`relative w-full ${isFullscreen ? 'h-screen' : 'h-[400px]'}`}>
             <div style={{ zIndex: 0 }} ref={mapRef} className="w-full h-full rounded-xl overflow-hidden shadow-lg" />
 
-            {/* حقل البحث عن كود Plus Code */}
-            <div className="absolute top-4 left-4 right-16 z-10 flex gap-2">
-                <input
+            {/* Plus Code or DMS search field */}
+            <div className="absolute top-4 left-4 right-16 z-1 flex gap-2 sm:right-16">
+                <Input
                     type="text"
                     value={plusCode}
                     onChange={(e) => setPlusCode(e.target.value)}
-                    placeholder={`(31°05'57.3" N 31°20'33.8"E)`}
-                    className={`w-64 px-4 py-2 rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDarkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-800'
-                        }`}
+                    placeholder={`31°05'57.3"N 31°20'33.8"E`}
                     dir="ltr"
                 />
-                <button
+                <Button
                     type="button"
                     onClick={handleSearchPlusCode}
-                    className={`p-2 rounded-lg shadow-md transition-colors ${isDarkMode
-                        ? 'bg-gray-800 text-white hover:bg-gray-700'
-                        : 'bg-white text-gray-800 hover:bg-gray-100'
-                        }`}
+                    className=' border-[1px] border-black '
                 >
                     <Search className="w-5 h-5" />
-                </button>
+                </Button>
             </div>
 
-            {/* زر ملء الشاشة */}
-            <button
+            {/* Fullscreen button */}
+            <Button
                 type="button"
                 onClick={toggleFullscreen}
-                className={`absolute top-4 right-4 p-2 rounded-lg shadow-md transition-colors ${isDarkMode
-                    ? 'bg-gray-800 text-white hover:bg-gray-700'
-                    : 'bg-white text-gray-800 hover:bg-gray-100'
-                    }`}
+                className={`absolute top-4 right-4 border-[1px] border-black `}
                 title={isFullscreen ? "خروج من ملء الشاشة" : "ملء الشاشة"}
             >
                 {isFullscreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
-            </button>
+            </Button>
 
             {selectedLocation && (
-                <Card className="absolute bottom-5 right-5 p-3 flex-row items-center gap-3 z-0 shadow-lg">
+                <Card className="absolute bottom-5 right-5 p-3 flex-row items-center gap-3 z-1 shadow-lg">
                     <MapPin className="w-5 h-5 text-gray-500" />
                     <span className="text-sm font-medium" dir='ltr'>
                         {selectedLocation.lat.toFixed(6)}, {selectedLocation.lng.toFixed(6)}
@@ -402,11 +398,12 @@ function MapComponent({
                     closeButton
                     expand={false}
                     duration={3000}
-                    theme={isDarkMode ? "dark" : "light"}
                     className="z-[9999]"
                 />
+
             )}
         </div>
+
     );
 }
 
