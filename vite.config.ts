@@ -37,7 +37,8 @@ export default defineConfig({
         offlineGoogleAnalytics: true,
         runtimeCaching: [
           {
-            urlPattern: /^https:\/\/elgamal\.infinityfreeapp\.com\//,
+   // هذا التعبير المنتظم (RegEx) يلقط أي رابط يبدأ بـ localhost أو ينتهي بـ vercel.app
+    urlPattern: /^https?:\/\/(localhost|.*\.vercel\.app)\//,
             handler: "NetworkFirst",
             options: {
               cacheName: "site-cache",

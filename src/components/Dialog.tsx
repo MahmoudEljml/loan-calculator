@@ -3,7 +3,8 @@ import { QRCodeSVG } from 'qrcode.react';
 import { X, Share2 } from 'lucide-react';
 import { Button } from './ui/button';
 
-const ShareDialog = ({ url = "https://elgamal.infinityfreeapp.com" }) => {
+// هنا قمنا بجعل القيمة الافتراضية تقرأ رابط المتصفح الحالي مباشرة
+const ShareDialog = ({ url = typeof window !== 'undefined' ? window.location.href : "" }) => {
     return (
         <Dialog.Root>
             {/* زر فتح النافذة */}
@@ -40,20 +41,11 @@ const ShareDialog = ({ url = "https://elgamal.infinityfreeapp.com" }) => {
                                 size={200}
                                 level={"H"} // جودة عالية لضمان القراءة حتى لو تم تصغيرها
                                 includeMargin={true}
-                            // imageSettings={{
-                            //     // يمكنك إضافة لوجو صغير في منتصف الكود إذا أردت
-                            //     src: "/vite.svg",
-                            //     x: undefined,
-                            //     y: undefined,
-                            //     height: 24,
-                            //     width: 24,
-                            //     excavate: true,
-                            // }}
                             />
                         </div>
 
-                        {/* رابط نصي قابل للنسخ (إضافي) */}
-                        {/* <div className="w-full p-3 bg-zinc-50 rounded-lg border border-zinc-200 flex items-center justify-between">
+                        {/* الرابط النصي القابل للنسخ (تفعيل اختياري في حال رغبت بظهوره ليقرأ نفس الرابط الديناميكي) */}
+                        <div className="w-full p-3 bg-zinc-50 rounded-lg border border-zinc-200 flex items-center justify-between">
                             <span className="text-xs text-zinc-600 truncate">{url}</span>
                             <button
                                 onClick={() => navigator.clipboard.writeText(url)}
@@ -61,7 +53,7 @@ const ShareDialog = ({ url = "https://elgamal.infinityfreeapp.com" }) => {
                             >
                                 نسخ
                             </button>
-                        </div> */}
+                        </div>
                     </div>
 
                     {/* زر الإغلاق X */}
