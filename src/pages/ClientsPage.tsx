@@ -27,9 +27,12 @@ export function ClientsPage() {
   };
 
   if (!isLoaded) {
-    return <div className="text-center py-8">جاري التحميل...</div>;
+    return <div className="text-center py-8" dir="rtl">جاري التحميل...</div>;
   }
 
+  
+
+  console.log(clients);
   return (
     <div className="space-y-4 text-start" dir="rtl">
       <div className="flex items-center justify-between mb-6">

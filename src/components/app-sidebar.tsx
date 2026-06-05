@@ -13,6 +13,7 @@ import {
   SidebarMenuItem,
   SidebarRail,
   SidebarSeparator,
+  useSidebar,
 } from "./ui/sidebar"
 import { paths } from "@/pages/paths"
 // 1. استيراد ملف الباكج لجلب رقم الإصدار
@@ -47,6 +48,8 @@ const nav = [
 
 export function AppSidebar() {
   const { pathname } = useLocation()
+  const { state } = useSidebar()
+
 
   const clearPwaCacheAndReload = async () => {
     try {
@@ -132,9 +135,18 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton onClick={clearPwaCacheAndReload}>
               <div className="flex w-full justify-between items-center">
-                <span>clear cache</span>
-                <span>v {pkg.version}</span>
+                {/* <span>clear cache</span>
+                <span>v {pkg.version}</span> */}
+                {state === "collapsed" ? (
+                  <span dir="ltr" className="overflow-x-hidden">C</span>
+                ) : (
+                  <span dir="ltr" className="overflow-x-hidden">clear cache</span>
+                )}
+                {state === "expanded" && (
+                  <span dir="ltr" className="overflow-x-hidden">v{pkg.version}</span>
+                )}
               </div>
+
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

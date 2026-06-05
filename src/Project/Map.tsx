@@ -50,7 +50,6 @@ function MapComponent({
     const mapInstanceRef = useRef<L.Map | null>(null);
     const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number } | null>(null);
     const [isFullscreen, setIsFullscreen] = useState(false);
-    // const [isDarkMode, setIsDarkMode] = useState(false);
     const [plusCode, setPlusCode] = useState('');
     const clickMarkerRef = useRef<L.Marker | null>(null);
     const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -134,11 +133,7 @@ function MapComponent({
                 }
 
                 // إنشاء أيقونة مخصصة للنقطة المحددة
-                const clickIcon = L.divIcon({
-                    html: `<div class="w-3 h-3 bg-red-500 rounded-full border-2 border-white shadow-md"></div>`,
-                    iconSize: [12, 12],
-                    className: 'click-marker'
-                });
+                const clickIcon = positionIcon;
 
                 // إضافة علامة جديدة في الموقع
                 clickMarkerRef.current = L.marker([latitude, longitude], { icon: clickIcon })
@@ -166,12 +161,10 @@ function MapComponent({
         }
     };
 
-
     // دالة للتعامل مع الضغط على زر التأكيد
     const handleConfirmLocation = () => {
         if (selectedLocation && onLocationSelect) {
             onLocationSelect(selectedLocation);
-
             // إظهار إشعار عند إضافة الموقع
             toast.success('تمت تغيير الإحداثيات بنجاح', {
                 description: `خط العرض: ${selectedLocation.lat.toFixed(6)}, خط الطول: ${selectedLocation.lng.toFixed(6)}`,
@@ -193,24 +186,6 @@ function MapComponent({
             setIsFullscreen(false);
         }
     };
-
-    // التحقق من الوضع الليلي
-    // useEffect(() => {
-    //     const checkDarkMode = () => {
-    //         setIsDarkMode(document.documentElement.classList.contains('dark'));
-    //     };
-
-    //     // Check initially
-    //     checkDarkMode();
-
-    //     // Set up a mutation observer to watch for class changes on the html element
-    //     const observer = new MutationObserver(checkDarkMode);
-    //     observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
-
-    //     return () => {
-    //         observer.disconnect();
-    //     };
-    // }, []);
 
     // الاستماع لتغييرات وضع ملء الشاشة
     useEffect(() => {
@@ -266,11 +241,19 @@ function MapComponent({
             }
 
             // إنشاء أيقونة مخصصة للنقطة المحددة
-            const clickIcon = L.divIcon({
-                html: `<div class="w-3 h-3 bg-red-500 rounded-full border-2 border-white shadow-md"></div>`,
-                iconSize: [12, 12],
-                className: 'click-marker'
-            });
+            // const clickIcon = L.divIcon({
+            //     html: `<div class="w-3 h-3 bg-red-500 rounded-full border-2 border-white shadow-md"></div>`,
+            //     iconSize: [12, 12],
+            //     className: 'click-marker'
+            // });
+            const clickIcon = positionIcon;
+
+
+
+
+
+
+
 
             // إضافة علامة جديدة في موقع النقر
             clickMarkerRef.current = L.marker([lat, lng], { icon: clickIcon })
@@ -398,7 +381,6 @@ function MapComponent({
                     closeButton
                     expand={false}
                     duration={3000}
-                    className="z-[9999]"
                 />
 
             )}
@@ -408,3 +390,31 @@ function MapComponent({
 }
 
 export default React.memo(MapComponent);
+
+
+
+const positionIcon = L.divIcon({
+    // SVG Pin Icon
+    html: `
+<svg 
+  xmlns="http://www.w3.org/2000/svg" 
+  width="32" 
+  height="32" 
+  viewBox="0 0 24 24" 
+  fill="#ef4444" 
+  stroke="#ef4444" 
+  stroke-width="1.5" 
+  stroke-linecap="round" 
+  stroke-linejoin="round" 
+
+>
+  <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"></path>
+  <circle cx="12" cy="10" r="3" fill="#ffffff" stroke="#ffffff"></circle> 
+</svg>
+    `,
+    // Adjust icon size to fit the pin
+    iconAnchor: [-4, 30],
+    // Anchor the icon at the bottom tip so it points exactly to the location
+    iconSize: [12, 12],
+    className: 'click-marker'
+});
