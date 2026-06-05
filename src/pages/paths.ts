@@ -6,4 +6,5 @@ export const paths = {
   viewClient: "/view-client",
   installments: "/installments",
   editInstallment: "/edit-installment",
+  map: "/map",
 } as const;

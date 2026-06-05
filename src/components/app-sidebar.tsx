@@ -1,4 +1,4 @@
-import { Calculator, Hash, Users, Receipt } from "lucide-react"
+import { Calculator, Hash, Users, Receipt, Map } from "lucide-react"
 import { NavLink, useLocation } from "react-router-dom"
 import {
   Sidebar,
@@ -44,6 +44,12 @@ const nav = [
     label: "الأقساط",
     icon: Receipt,
   },
+  {
+    to: paths.map,
+    end: false,
+    label: "خريطة",
+    icon: Map,
+  }
 ] as const
 
 export function AppSidebar() {

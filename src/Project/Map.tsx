@@ -4,7 +4,7 @@ import 'leaflet/dist/leaflet.css';
 import geoJsonData from './Polygons/Dakahlia.json';
 import type { FeatureCollection } from 'geojson';
 import { Card } from '@/components/ui/card';
-import { MapPin, Check, Maximize2, Minimize2, Search } from 'lucide-react';
+import { MapPin, Check, Maximize2, Minimize2, Search, Crosshair } from 'lucide-react';
 import { Toaster } from '@/components/ui/sonner';
 import { toast } from 'sonner';
 // @ts-expect-error - open-location-code doesn't have TypeScript type definitions
@@ -22,14 +22,46 @@ const GoogleArabicLayer = L.TileLayer.extend({
     }
 });
 
-// خيارات تخصيص الحدود
+// خيارات تخصيص الحدود - منطقة الدقهلية بلون فاتح
 const polygonOptions = {
-    fillColor: "rgba(0, 0, 0, 0.301)",
-    fillOpacity: 0.3,
-    color: "rgba(0, 0, 0, 0.09)",
-    opacity: 0,
-    weight: 1,
+    fillColor: "#e8e8e8",
+    fillOpacity: 0,
+    color: "#d0d0d0",
+    opacity: 1,
+    weight: 1.5,
 };
+
+const darkOverlayOptions = {
+    fillColor: "rgba(0, 0, 0, 0.178)",
+    fillOpacity: 1,
+    color: "transparent",
+    opacity: 0,
+    weight: 0,
+};
+
+function getHolePolygons(featureCollection: FeatureCollection): L.LatLngTuple[][] {
+    return featureCollection.features.flatMap((feature) => {
+        if (!feature.geometry) {
+            return [] as L.LatLngTuple[][];
+        }
+
+        if (feature.geometry.type === 'Polygon') {
+            return [
+                ...feature.geometry.coordinates.map((ring) =>
+                    ring.map(([lng, lat]) => [lat, lng] as L.LatLngTuple)
+                ),
+            ];
+        }
+
+        if (feature.geometry.type === 'MultiPolygon') {
+            return feature.geometry.coordinates.flatMap((polygon) =>
+                polygon.map((ring) => ring.map(([lng, lat]) => [lat, lng] as L.LatLngTuple))
+            );
+        }
+
+        return [] as L.LatLngTuple[][];
+    });
+}
 
 interface MapComponentProps {
     markers?: Array<{
@@ -41,7 +73,7 @@ interface MapComponentProps {
     onLocationSelect?: (location: { lat: number; lng: number }) => void;
 }
 
-function MapComponent({
+export function MapComponent({
     markers = [],
     showUserLocation = true,
     onLocationSelect
@@ -51,6 +83,7 @@ function MapComponent({
     const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number } | null>(null);
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [plusCode, setPlusCode] = useState('');
+    const [isGettingLocation, setIsGettingLocation] = useState(false);
     const clickMarkerRef = useRef<L.Marker | null>(null);
     const mapContainerRef = useRef<HTMLDivElement>(null);
 
@@ -161,6 +194,88 @@ function MapComponent({
         }
     };
 
+    // دالة للحصول على موقع المستخدم الحالي
+    const handleGetUserLocation = () => {
+        if (!navigator.geolocation) {
+            toast.error('خدمة تحديد الموقع غير مدعومة', {
+                description: 'متصفحك لا يدعم خدمة تحديد الموقع الجغرافي',
+                duration: 3000,
+                position: 'top-center',
+            });
+            return;
+        }
+
+        setIsGettingLocation(true);
+
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const { latitude, longitude } = position.coords;
+                const newLocation = { lat: latitude, lng: longitude };
+
+                setSelectedLocation(newLocation);
+
+                // إزالة العلامة السابقة إذا وجدت
+                if (clickMarkerRef.current) {
+                    mapInstanceRef.current?.removeLayer(clickMarkerRef.current);
+                }
+
+                // إنشاء أيقونة مخصصة للنقطة المحددة
+                const clickIcon = positionIcon;
+
+                // إضافة علامة جديدة في الموقع
+                clickMarkerRef.current = L.marker([latitude, longitude], { icon: clickIcon })
+                    .addTo(mapInstanceRef.current!);
+
+                // توجيه الخريطة نحو الموقع الجديد
+                mapInstanceRef.current?.setView([latitude, longitude], 16);
+
+                toast.success('تم تحديد موقعك الحالي بنجاح', {
+                    description: `خط العرض: ${latitude.toFixed(6)}, خط الطول: ${longitude.toFixed(6)}`,
+                    duration: 3000,
+                    position: 'top-center',
+                });
+
+                setIsGettingLocation(false);
+            },
+            (error) => {
+                setIsGettingLocation(false);
+
+                // معالجة أخطاء الإذن والموقع
+                switch (error.code) {
+                    case error.PERMISSION_DENIED:
+                        toast.error('تم رفض إذن الوصول للموقع', {
+                            description: 'يرجى السماح للتطبيق بالوصول لموقعك في إعدادات المتصفح',
+                            duration: 4000,
+                            position: 'top-center',
+                        });
+                        break;
+                    case error.POSITION_UNAVAILABLE:
+                        toast.error('الموقع غير متاح', {
+                            description: 'لم نتمكن من تحديد موقعك في الوقت الحالي',
+                            duration: 3000,
+                            position: 'top-center',
+                        });
+                        break;
+                    case error.TIMEOUT:
+                        toast.error('انتهت مهلة الانتظار', {
+                            description: 'استغرق تحديد الموقع وقتاً طويلاً، يرجى المحاولة مرة أخرى',
+                            duration: 3000,
+                            position: 'top-center',
+                        });
+                        break;
+                    default:
+                        toast.error('خطأ في تحديد الموقع', {
+                            description: error.message || 'حدث خطأ غير متوقع',
+                            duration: 3000,
+                            position: 'top-center',
+                        });
+                }
+
+                console.error('Error getting location:', error);
+            }
+        );
+    };
+
     // دالة للتعامل مع الضغط على زر التأكيد
     const handleConfirmLocation = () => {
         if (selectedLocation && onLocationSelect) {
@@ -230,6 +345,20 @@ function MapComponent({
         mapInstanceRef.current?.fitBounds(bounds);
         mapInstanceRef.current?.setMaxBounds(bounds.pad(0.1));
 
+        // إضافة طبقة تظليل للخريطة خارج حدود الدقهلية
+        const holePolygons = getHolePolygons(dakahliaData);
+        const worldBounds: L.LatLngTuple[] = [
+            [-90, -180],
+            [90, -180],
+            [90, 180],
+            [-90, 180]
+        ];
+
+        L.polygon([worldBounds, ...holePolygons], darkOverlayOptions).addTo(mapInstanceRef.current!);
+
+        // إعادة الطبقة الحدودية إلى الأمام لضمان وضوح الخط
+        geoJsonLayer.bringToFront();
+
         // إضافة حدث النقر على الخريطة
         mapInstanceRef.current?.on('click', function (e) {
             const { lat, lng } = e.latlng;
@@ -247,12 +376,6 @@ function MapComponent({
             //     className: 'click-marker'
             // });
             const clickIcon = positionIcon;
-
-
-
-
-
-
 
 
             // إضافة علامة جديدة في موقع النقر
@@ -342,8 +465,18 @@ function MapComponent({
                     type="button"
                     onClick={handleSearchPlusCode}
                     className=' border-[1px] border-black '
+                    title="بحث عن موقع"
                 >
                     <Search className="w-5 h-5" />
+                </Button>
+                <Button
+                    type="button"
+                    onClick={handleGetUserLocation}
+                    disabled={isGettingLocation}
+                    className=' border-[1px] border-black '
+                    title="استخدم موقعك الحالي"
+                >
+                    <Crosshair className="w-5 h-5" />
                 </Button>
             </div>
 
