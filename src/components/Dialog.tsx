@@ -3,8 +3,8 @@ import { QRCodeSVG } from 'qrcode.react';
 import { X, Share2 } from 'lucide-react';
 import { Button } from './ui/button';
 
-// هنا قمنا بجعل القيمة الافتراضية تقرأ رابط المتصفح الحالي مباشرة
-const ShareDialog = ({ url = typeof window !== 'undefined' ? window.location.href : "" }) => {
+// هنا قمنا بجعل القيمة الافتراضية تستخدم الصفحة الرئيسية للاستضافة فقط
+const ShareDialog = ({ url = typeof window !== 'undefined' ? window.location.origin : "" }) => {
     return (
         <Dialog.Root>
             {/* زر فتح النافذة */}
