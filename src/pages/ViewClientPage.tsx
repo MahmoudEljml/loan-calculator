@@ -1,20 +1,16 @@
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useClientsStorage } from '../hooks/useClientsStorage';
 import { Button } from '@/components/ui/button';
-import { ChevronRight, Edit2, ArrowLeft, Phone, MapPin, Briefcase, User, Calendar } from 'lucide-react';
-
-// function isJobDetails(value: any): value is {
-//   job_title: { val: string; label: string };
-//   workplace: { val: string; label: string };
-//   years_of_experience: { val: string; label: string };
-// } {
-//   return value && typeof value === 'object' && 'job_title' in value;
-// }
+import { ChevronRight, Edit2, ArrowLeft, Phone, MapPin, Briefcase, User, Calendar, Image as ImageIcon } from 'lucide-react';
+import { useState } from 'react';
+import { ImageViewer } from '@/components/ImageViewer';
 
 export function ViewClientPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { getClient } = useClientsStorage();
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [viewerIndex, setViewerIndex] = useState(0);
 
   const clientId = searchParams.get('id');
   const client = clientId ? getClient(clientId) : null;
@@ -61,11 +57,11 @@ export function ViewClientPage() {
 
       {/* Content */}
       <div className="max-w-6xl mx-auto px-4 py-8 space-y-6">
-        {/* معلومات مقدم الطلب */}
+        {/* معلومات العميل */}
         <Section
-          title="معلومات مقدم الطلب"
+          title="معلومات العميل"
           icon={<User className="w-5 h-5" />}
-          subtitle="البيانات الشخصية للمتقدم"
+          subtitle="البيانات الشخصية للعميل"
         >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <InfoField
@@ -77,15 +73,6 @@ export function ViewClientPage() {
               label="رقم الهاتف"
               value={client.client_information.phone_number.val}
               icon={<Phone className="w-4 h-4" />}
-            />
-            <InfoField
-              label="عنوان الإقامة الدائم"
-              value={client.client_information.permanent_address.val}
-              icon={<MapPin className="w-4 h-4" />}
-            />
-            <InfoField
-              label="علامة مميزة"
-              value={client.client_information.landmark.val}
             />
           </div>
         </Section>
@@ -132,110 +119,53 @@ export function ViewClientPage() {
           </div>
         </Section>
 
-        {/* بيانات الضامن الأول */}
+        {/* صور العميل */}
         <Section
-          title="بيانات الضامن الأول"
-          icon={<User className="w-5 h-5" />}
-          subtitle="معلومات الضامن الأول"
+          title="صور العميل"
+          icon={<ImageIcon className="w-5 h-5" />}
+          subtitle={`عدد الصور: ${client.clientImages.length}`}
         >
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <InfoField
-                label="الاسم"
-                value={client.guarantors_details.first_guarantor.full_name.val}
-                icon={<User className="w-4 h-4" />}
-              />
-              <InfoField
-                label="رقم الهاتف"
-                value={client.guarantors_details.first_guarantor.phone_number.val}
-                icon={<Phone className="w-4 h-4" />}
-              />
-              <InfoField
-                label="عنوان الإقامة الدائم"
-                value={client.guarantors_details.first_guarantor.permanent_address.val}
-                icon={<MapPin className="w-4 h-4" />}
-              />
-              <InfoField
-                label="علامة مميزة"
-                value={client.guarantors_details.first_guarantor.address_landmark.val}
-              />
+          {client.clientImages.length > 0 ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+              {client.clientImages.map((image, index) => (
+                <button
+                  key={index}
+                  onClick={() => {
+                    setViewerIndex(index);
+                    setViewerOpen(true);
+                  }}
+                  className="relative group rounded-lg overflow-hidden border border-gray-300 dark:border-gray-600 hover:shadow-lg transition-all"
+                >
+                  <img
+                    src={image}
+                    alt={`صورة ${index + 1}`}
+                    className="w-full h-40 object-cover hover:scale-105 transition-transform"
+                  />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+                    <span className="text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                      عرض
+                    </span>
+                  </div>
+                </button>
+              ))}
             </div>
-
-            <div className="bg-gradient-to-r from-primary/5 to-primary/10 rounded-lg p-4 border border-primary/20">
-              <h4 className="font-semibold text-sm mb-4 flex items-center gap-2">
-                <Briefcase className="w-4 h-4" />
-                تفاصيل الوظيفة
-              </h4>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <InfoField
-                  label="المهنة"
-                  value={client.guarantors_details.first_guarantor.job_details.job_title.val}
-                />
-                <InfoField
-                  label="اسم جهة العمل"
-                  value={client.guarantors_details.first_guarantor.job_details.workplace.val}
-                />
-                <InfoField
-                  label="عدد سنوات الخبرة"
-                  value={client.guarantors_details.first_guarantor.job_details.years_of_experience.val}
-                />
-              </div>
+          ) : (
+            <div className="text-center py-12 text-muted-foreground border border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
+              <ImageIcon className="w-8 h-8 mx-auto mb-2 opacity-50" />
+              <p>لا توجد صور للعميل</p>
             </div>
-          </div>
-        </Section>
-
-        {/* بيانات الضامن الثاني */}
-        <Section
-          title="بيانات الضامن الثاني"
-          icon={<User className="w-5 h-5" />}
-          subtitle="معلومات الضامن الثاني"
-        >
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <InfoField
-                label="الاسم"
-                value={client.guarantors_details.second_guarantor.full_name.val}
-                icon={<User className="w-4 h-4" />}
-              />
-              <InfoField
-                label="رقم الهاتف"
-                value={client.guarantors_details.second_guarantor.phone_number.val}
-                icon={<Phone className="w-4 h-4" />}
-              />
-              <InfoField
-                label="عنوان الإقامة الدائم"
-                value={client.guarantors_details.second_guarantor.permanent_address.val}
-                icon={<MapPin className="w-4 h-4" />}
-              />
-              <InfoField
-                label="علامة مميزة"
-                value={client.guarantors_details.second_guarantor.address_landmark.val}
-              />
-            </div>
-
-            <div className="bg-gradient-to-r from-primary/5 to-primary/10 rounded-lg p-4 border border-primary/20">
-              <h4 className="font-semibold text-sm mb-4 flex items-center gap-2">
-                <Briefcase className="w-4 h-4" />
-                تفاصيل الوظيفة
-              </h4>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <InfoField
-                  label="المهنة"
-                  value={client.guarantors_details.second_guarantor.job_details.job_title.val}
-                />
-                <InfoField
-                  label="اسم جهة العمل"
-                  value={client.guarantors_details.second_guarantor.job_details.workplace.val}
-                />
-                <InfoField
-                  label="عدد سنوات الخبرة"
-                  value={client.guarantors_details.second_guarantor.job_details.years_of_experience.val}
-                />
-              </div>
-            </div>
-          </div>
+          )}
         </Section>
       </div>
+
+      {/* Image Viewer Modal */}
+      {viewerOpen && client.clientImages.length > 0 && (
+        <ImageViewer
+          images={client.clientImages}
+          initialIndex={viewerIndex}
+          onClose={() => setViewerOpen(false)}
+        />
+      )}
 
       {/* Footer Actions */}
       <div className="sticky bottom-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-t">

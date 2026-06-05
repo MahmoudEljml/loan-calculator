@@ -4,15 +4,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import MapComponent from '@/Project/Map';
 import { useClientsStorage, type ClientData } from '../hooks/useClientsStorage';
-import { ChevronRight, MapPin } from 'lucide-react';
+import { ChevronRight, MapPin, X, Image as ImageIcon } from 'lucide-react';
 import useLocalStorage from '@/hooks/useLocalStorage';
+import { ImageViewer } from '@/components/ImageViewer';
+import { toast } from 'sonner';
 
-const emptyClient = (): Omit<ClientData, 'id'> => ({
+const emptyClient = (): Omit<ClientData, 'id' | 'createdAt' | 'updatedAt'> => ({
   client_information: {
     full_name: { val: '', label: 'اسم مقدم الطلب' },
     phone_number: { val: '', label: 'رقم الهاتف' },
-    permanent_address: { val: '', label: 'عنوان الإقامة الدائم' },
-    landmark: { val: '', label: 'علامة مميزة' },
   },
   business_details: {
     coordinates: { val: '', label: 'إحداثيات خطوط الطول والعرض' },
@@ -21,39 +21,20 @@ const emptyClient = (): Omit<ClientData, 'id'> => ({
     address: { val: '', label: 'العنوان' },
     landmark: { val: '', label: 'علامة مميزة' },
   },
-  guarantors_details: {
-    first_guarantor: {
-      full_name: { val: '', label: 'الأسم' },
-      phone_number: { val: '', label: 'رقم هاتف' },
-      permanent_address: { val: '', label: 'عنوان الإقامة الدائم' },
-      address_landmark: { val: '', label: 'علامة مميزة' },
-      job_details: {
-        job_title: { val: '', label: 'المهنة' },
-        workplace: { val: '', label: 'اسم جهة العمل' },
-        years_of_experience: { val: '', label: 'عدد سنوات الخبرة' },
-      },
-    },
-    second_guarantor: {
-      full_name: { val: '', label: 'الأسم' },
-      phone_number: { val: '', label: 'رقم هاتف' },
-      permanent_address: { val: '', label: 'عنوان الإقامة الدائم' },
-      address_landmark: { val: '', label: 'علامة مميزة' },
-      job_details: {
-        job_title: { val: '', label: 'المهنة' },
-        workplace: { val: '', label: 'اسم جهة العمل' },
-        years_of_experience: { val: '', label: 'عدد سنوات الخبرة' },
-      },
-    },
-  },
+  clientImages: [],
 });
 
 export function AddClientPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { addClient, updateClient, getClient } = useClientsStorage();
-  const [formData, setFormData] = useState<Omit<ClientData, 'id'>>(emptyClient());
+  const [formData, setFormData] = useState<Omit<ClientData, 'id' | 'createdAt' | 'updatedAt'>>(emptyClient());
   const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [savedCalculatorNumber] = useLocalStorage<string>('loanPhoneNumber', '');
+  const [clientImages, setClientImages] = useState<string[]>([]);
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [viewerIndex, setViewerIndex] = useState(0);
 
   const clientId = searchParams.get('id');
 
@@ -61,8 +42,9 @@ export function AddClientPage() {
     if (clientId) {
       const client = getClient(clientId);
       if (client) {
-        const { id: _, ...clientWithoutId } = client;
-        setFormData(clientWithoutId);
+        const { id: _, createdAt: __, updatedAt: ___, ...clientWithoutMetadata } = client;
+        setFormData(clientWithoutMetadata);
+        setClientImages(client.clientImages);
         setIsEditing(true);
       }
     }
@@ -74,12 +56,11 @@ export function AddClientPage() {
       title: 'موقع النشاط'
     }
   ], []);
-  // 1. هذه الدالة الجديدة ستستقبل الإحداثيات من الخريطة وتحدث النموذج
+
   const handleMapLocationSelect = useCallback((location: { lat: number; lng: number }) => {
     const coordinatesString = `${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}`;
     updateNestedValue('business_details.coordinates', coordinatesString);
   }, []);
-
 
   const updateNestedValue = (path: string, value: string) => {
     setFormData((prev) => {
@@ -100,16 +81,53 @@ export function AddClientPage() {
     });
   };
 
-
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (isEditing && clientId) {
-      updateClient(clientId, formData);
-    } else {
-      addClient(formData);
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files) {
+      Array.from(files).forEach((file) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const result = reader.result as string;
+          setClientImages((prev) => [...prev, result]);
+        };
+        reader.readAsDataURL(file);
+      });
     }
-    navigate('/customers');
+  };
+
+  const removeImage = (index: number) => {
+    setClientImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!formData.client_information.full_name.val || !formData.client_information.phone_number.val) {
+      toast.error('يرجى ملء الاسم ورقم الهاتف');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const dataToSave = {
+        ...formData,
+        clientImages,
+      };
+
+      if (isEditing && clientId) {
+        await updateClient(clientId, dataToSave);
+        toast.success('تم تحديث بيانات العميل بنجاح');
+      } else {
+        await addClient(dataToSave);
+        toast.success('تم إضافة العميل بنجاح');
+      }
+      navigate('/customers');
+    } catch (error) {
+      toast.error('حدث خطأ في الحفظ');
+      console.error(error);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -127,8 +145,8 @@ export function AddClientPage() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6 pb-20">
-        {/* معلومات مقدم الطلب */}
-        <Section title="معلومات مقدم الطلب">
+        {/* معلومات العميل */}
+        <Section title="معلومات العميل">
           <FieldInput
             label={formData.client_information.full_name.label}
             value={formData.client_information.full_name.val}
@@ -140,27 +158,19 @@ export function AddClientPage() {
             onChange={(val) => updateNestedValue('client_information.phone_number', val)}
             type="tel"
           />
-          <Button type="button" onClick={() => {
-            // التحقق من وجود رقم صالح (وليس مجرد علامات تنصيص)
-            if (savedCalculatorNumber && savedCalculatorNumber.length > 2) {
-              updateNestedValue('client_information.phone_number', savedCalculatorNumber);
-            } else {
-              alert('لا يوجد رقم هاتف صالح محفوظ');
-            }
-          }}
-          >اضافة الرقم المسجل فى الحاسبة
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              if (savedCalculatorNumber && savedCalculatorNumber.length > 2) {
+                updateNestedValue('client_information.phone_number', savedCalculatorNumber);
+              } else {
+                toast.error('لا يوجد رقم هاتف صالح محفوظ');
+              }
+            }}
+          >
+            اضافة الرقم المسجل فى الحاسبة
           </Button>
-
-          <FieldInput
-            label="عنوان الإقامة الدائم"
-            value={formData.client_information.permanent_address.val}
-            onChange={(val) => updateNestedValue('client_information.permanent_address', val)}
-          />
-          <FieldInput
-            label="علامة مميزة"
-            value={formData.client_information.landmark.val}
-            onChange={(val) => updateNestedValue('client_information.landmark', val)}
-          />
         </Section>
 
         {/* تفاصيل النشاط */}
@@ -190,12 +200,13 @@ export function AddClientPage() {
             value={formData.business_details.business_type.val}
             onChange={(val) => updateNestedValue('business_details.business_type', val)}
           />
-          <FieldInput
-            label="تاريخ بدء النشاط"
+
+          {/* Start Date with Flexible Input */}
+          <StartDateInput
             value={formData.business_details.start_date.val}
             onChange={(val) => updateNestedValue('business_details.start_date', val)}
-            type="date"
           />
+
           <FieldInput
             label="العنوان"
             value={formData.business_details.address.val}
@@ -208,103 +219,100 @@ export function AddClientPage() {
           />
         </Section>
 
-        {/* بيانات الضامن الأول */}
-        <Section title="بيانات الضامن الأول">
-          <FieldInput
-            label="الاسم"
-            value={formData.guarantors_details.first_guarantor.full_name.val}
-            onChange={(val) => updateNestedValue('guarantors_details.first_guarantor.full_name', val)}
-          />
-          <FieldInput
-            label="رقم هاتف"
-            value={formData.guarantors_details.first_guarantor.phone_number.val}
-            onChange={(val) => updateNestedValue('guarantors_details.first_guarantor.phone_number', val)}
-            type="tel"
-          />
-          <FieldInput
-            label="عنوان الإقامة الدائم"
-            value={formData.guarantors_details.first_guarantor.permanent_address.val}
-            onChange={(val) => updateNestedValue('guarantors_details.first_guarantor.permanent_address', val)}
-          />
-          <FieldInput
-            label="علامة مميزة"
-            value={formData.guarantors_details.first_guarantor.address_landmark.val}
-            onChange={(val) => updateNestedValue('guarantors_details.first_guarantor.address_landmark', val)}
-          />
+        {/* صور العميل */}
+        <Section title="صور العميل">
+          <p className="text-sm text-muted-foreground mb-4">
+            يمكنك إضافة عدة صور للعميل
+          </p>
 
-          <div className="space-y-3 pl-4 border-r-2 border-muted">
-            <h4 className="font-medium text-sm">تفاصيل الوظيفة</h4>
-            <FieldInput
-              label="المهنة"
-              value={formData.guarantors_details.first_guarantor.job_details.job_title.val}
-              onChange={(val) => updateNestedValue('guarantors_details.first_guarantor.job_details.job_title', val)}
+          {/* Images Grid */}
+          {clientImages.length > 0 && (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mb-4">
+              {clientImages.map((image, index) => (
+                <div key={index} className="relative group">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setViewerIndex(index);
+                      setViewerOpen(true);
+                    }}
+                    className="w-full h-32 object-cover rounded-lg border border-gray-300 dark:border-gray-600 overflow-hidden hover:opacity-80 transition-opacity"
+                  >
+                    <img
+                      src={image}
+                      alt={`صورة ${index + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => removeImage(index)}
+                    className="absolute top-1 right-1 bg-destructive text-white p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                    title="حذف الصورة"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Upload Area */}
+          <div>
+            <input
+              type="file"
+              multiple
+              accept="image/*"
+              onChange={handleImageChange}
+              className="hidden"
+              id="image-upload"
             />
-            <FieldInput
-              label="اسم جهة العمل"
-              value={formData.guarantors_details.first_guarantor.job_details.workplace.val}
-              onChange={(val) => updateNestedValue('guarantors_details.first_guarantor.job_details.workplace', val)}
-            />
-            <FieldInput
-              label="عدد سنوات الخبرة"
-              value={formData.guarantors_details.first_guarantor.job_details.years_of_experience.val}
-              onChange={(val) => updateNestedValue('guarantors_details.first_guarantor.job_details.years_of_experience', val)}
-              type="number"
-            />
+            <label
+              htmlFor="image-upload"
+              className="flex items-center justify-center w-full p-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
+            >
+              <div className="text-center">
+                <ImageIcon className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                <p className="text-sm font-medium">انقر لتحميل صور أو اسحبها هنا</p>
+                <p className="text-xs text-muted-foreground mt-1">يدعم jpg, png وغيرها</p>
+              </div>
+            </label>
+            {clientImages.length > 0 && (
+              <p className="text-xs text-muted-foreground mt-2">
+                عدد الصور: {clientImages.length}
+              </p>
+            )}
           </div>
+
+          {clientImages.length === 0 && (
+            <div className="text-center py-8 text-muted-foreground border border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
+              لا توجد صور
+            </div>
+          )}
         </Section>
 
-        {/* بيانات الضامن الثاني */}
-        <Section title="بيانات الضامن الثاني">
-          <FieldInput
-            label="الاسم"
-            value={formData.guarantors_details.second_guarantor.full_name.val}
-            onChange={(val) => updateNestedValue('guarantors_details.second_guarantor.full_name', val)}
+        {/* Image Viewer Modal */}
+        {viewerOpen && clientImages.length > 0 && (
+          <ImageViewer
+            images={clientImages}
+            initialIndex={viewerIndex}
+            onClose={() => setViewerOpen(false)}
           />
-          <FieldInput
-            label="رقم هاتف"
-            value={formData.guarantors_details.second_guarantor.phone_number.val}
-            onChange={(val) => updateNestedValue('guarantors_details.second_guarantor.phone_number', val)}
-            type="tel"
-          />
-          <FieldInput
-            label="عنوان الإقامة الدائم"
-            value={formData.guarantors_details.second_guarantor.permanent_address.val}
-            onChange={(val) => updateNestedValue('guarantors_details.second_guarantor.permanent_address', val)}
-          />
-          <FieldInput
-            label="علامة مميزة"
-            value={formData.guarantors_details.second_guarantor.address_landmark.val}
-            onChange={(val) => updateNestedValue('guarantors_details.second_guarantor.address_landmark', val)}
-          />
-
-          <div className="space-y-3 pl-4 border-r-2 border-muted">
-            <h4 className="font-medium text-sm">تفاصيل الوظيفة</h4>
-            <FieldInput
-              label="المهنة"
-              value={formData.guarantors_details.second_guarantor.job_details.job_title.val}
-              onChange={(val) => updateNestedValue('guarantors_details.second_guarantor.job_details.job_title', val)}
-            />
-            <FieldInput
-              label="اسم جهة العمل"
-              value={formData.guarantors_details.second_guarantor.job_details.workplace.val}
-              onChange={(val) => updateNestedValue('guarantors_details.second_guarantor.job_details.workplace', val)}
-            />
-            <FieldInput
-              label="عدد سنوات الخبرة"
-              value={formData.guarantors_details.second_guarantor.job_details.years_of_experience.val}
-              onChange={(val) => updateNestedValue('guarantors_details.second_guarantor.job_details.years_of_experience', val)}
-              type="number"
-            />
-          </div>
-        </Section>
+        )}
 
         {/* أزرار التحكم */}
         <div className="flex gap-2 sticky bottom-0 bg-background/95 backdrop-blur py-4 border-t">
-          <Button type="button" variant="outline" onClick={() => navigate('/customers')} className="flex-1">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => navigate('/customers')}
+            className="flex-1"
+            disabled={isSaving}
+          >
             إلغاء
           </Button>
-          <Button type="submit" className="flex-1">
-            {isEditing ? 'تحديث' : 'حفظ'}
+          <Button type="submit" className="flex-1" disabled={isSaving}>
+            {isSaving ? 'جاري الحفظ...' : isEditing ? 'تحديث' : 'حفظ'}
           </Button>
         </div>
       </form>
@@ -321,7 +329,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
- function FieldInput({
+function FieldInput({
   label,
   value,
   onChange,
@@ -348,6 +356,105 @@ function Section({ title, children }: { title: string; children: React.ReactNode
         dir={dir}
         className="w-full"
       />
+    </div>
+  );
+}
+
+function StartDateInput({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (val: string) => void;
+}) {
+  const [year, setYear] = useState('');
+  const [month, setMonth] = useState('');
+  const [day, setDay] = useState('');
+
+  useEffect(() => {
+    if (value) {
+      const parts = value.split('-');
+      if (parts.length >= 1) setYear(parts[0]);
+      if (parts.length >= 2) setMonth(parts[1]);
+      if (parts.length === 3) setDay(parts[2]);
+    }
+  }, [value]);
+
+  const handleDateChange = (y: string, m: string, d: string) => {
+    setYear(y);
+    setMonth(m);
+    setDay(d);
+
+    // Build date string
+    let dateStr = y;
+    if (m) dateStr += `-${m.padStart(2, '0')}`;
+    if (d && m) dateStr += `-${d.padStart(2, '0')}`;
+
+    onChange(dateStr);
+  };
+
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: 50 }, (_, i) => currentYear - i);
+  const months = Array.from({ length: 12 }, (_, i) => i + 1);
+  const days = Array.from({ length: 31 }, (_, i) => i + 1);
+
+  return (
+    <div>
+      <label className="block text-sm font-medium mb-2">تاريخ بدء النشاط</label>
+      <p className="text-xs text-muted-foreground mb-3">
+        يمكنك إدخال السنة فقط، أو السنة والشهر، أو التاريخ كاملاً
+      </p>
+      <div className="grid grid-cols-3 gap-2">
+        <div>
+          <label className="text-xs text-muted-foreground block mb-1">السنة *</label>
+          <select
+            value={year}
+            onChange={(e) => handleDateChange(e.target.value, month, day)}
+            className="w-full p-2 border rounded-lg bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+          >
+            <option value="">اختر السنة</option>
+            {years.map((y) => (
+              <option key={y} value={y}>
+                {y}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="text-xs text-muted-foreground block mb-1">الشهر</label>
+          <select
+            value={month}
+            onChange={(e) => handleDateChange(year, e.target.value, day)}
+            className="w-full p-2 border rounded-lg bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+            disabled={!year}
+          >
+            <option value="">اختر الشهر</option>
+            {months.map((m) => (
+              <option key={m} value={String(m).padStart(2, '0')}>
+                {m}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="text-xs text-muted-foreground block mb-1">اليوم</label>
+          <select
+            value={day}
+            onChange={(e) => handleDateChange(year, month, e.target.value)}
+            className="w-full p-2 border rounded-lg bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+            disabled={!month}
+          >
+            <option value="">اختر اليوم</option>
+            {days.map((d) => (
+              <option key={d} value={String(d).padStart(2, '0')}>
+                {d}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
     </div>
   );
 }

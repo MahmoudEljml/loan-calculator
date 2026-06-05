@@ -30,7 +30,7 @@ export function ClientsPage() {
     return <div className="text-center py-8" dir="rtl">جاري التحميل...</div>;
   }
 
-  
+
 
   console.log(clients);
   return (
@@ -59,6 +59,7 @@ export function ClientsPage() {
         <table className="w-full text-sm">
           <thead className="bg-muted">
             <tr>
+              <th className="px-4 py-3 text-right font-semibold">الصورة</th>
               <th className="px-4 py-3 text-right font-semibold">اسم العميل</th>
               <th className="px-4 py-3 text-right font-semibold">رقم الهاتف</th>
               <th className="px-4 py-3 text-right font-semibold">نوع النشاط</th>
@@ -69,6 +70,25 @@ export function ClientsPage() {
           <tbody>
             {filteredClients.map((client) => (
               <tr key={client.id} className="border-t hover:bg-muted/50 transition-colors">
+                <td className="px-4 py-3">
+                  {client.clientImages.length > 0 ? (
+                    <div className="flex gap-1">
+                      <img
+                        src={client.clientImages[0]}
+                        alt="صورة العميل"
+                        className="w-10 h-10 object-cover rounded"
+                        title={`${client.clientImages.length} صورة`}
+                      />
+                      {client.clientImages.length > 1 && (
+                        <div className="w-10 h-10 bg-muted rounded flex items-center justify-center text-xs font-semibold">
+                          +{client.clientImages.length - 1}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <span className="text-muted-foreground">-</span>
+                  )}
+                </td>
                 <td className="px-4 py-3">
                   {client.client_information.full_name.val || '-'}
                 </td>
@@ -124,10 +144,10 @@ export function ClientsPage() {
       {/* Card View - Mobile */}
       <div className="sm:hidden space-y-3">
         {filteredClients.map((client) => (
-          <div key={client.id} className="border rounded-lg p-4 bg-card hover:bg-muted/50 transition-colors">
+          <div key={client.id} className="border border-black dark:border-white rounded-lg p-4 bg-card hover:bg-muted/50 transition-colors">
             <div className="space-y-2">
-              <div className="flex justify-between items-start">
-                <div>
+              <div className="flex justify-between items-start gap-3">
+                <div className="flex-1">
                   <p className="font-semibold">
                     {client.client_information.full_name.val || 'غير محدد'}
                   </p>
@@ -135,6 +155,16 @@ export function ClientsPage() {
                     {client.client_information.phone_number.val}
                   </p>
                 </div>
+                {client.clientImages.length > 0 && (
+                  <div className="flex gap-1">
+                    <img
+                      src={client.clientImages[0]}
+                      alt="صورة العميل"
+                      className="w-12 h-12 object-cover rounded"
+                      title={`${client.clientImages.length} صورة`}
+                    />
+                  </div>
+                )}
               </div>
               <div className="text-sm space-y-1">
                 <p>

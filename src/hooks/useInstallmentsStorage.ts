@@ -35,7 +35,7 @@ interface LoanCalculatorDB extends DBSchema {
 }
 
 const DB_NAME = 'loan-calculator';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORE_NAME = 'installments';
 
 let db: IDBPDatabase<LoanCalculatorDB> | null = null;

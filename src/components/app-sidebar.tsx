@@ -35,7 +35,7 @@ const nav = [
   {
     to: paths.customers,
     end: false,
-    label: "بيانات العملاء",
+    label: "بيانات العملاء (التسويق)",
     icon: Users,
   },
   {
