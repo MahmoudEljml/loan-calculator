@@ -23,7 +23,7 @@ export default defineConfig({
         name: "loan-calculator",
         short_name: "قسطلي",
         description: "loan-calculator",
-        theme_color: "#ffffff",
+        theme_color: "#000000",
         background_color: "#ffffff", // إضافة هذا السطر مهمة لبعض الهواتف أثناء تحميل التطبيق
         display: "standalone", // تضمن ظهور التطبيق بدون شريط المتصفح كأنه تطبيق موبايل أصيل
         start_url: "/?launcher=pwa",
