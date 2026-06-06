@@ -21,7 +21,7 @@ export default defineConfig({
 
       manifest: {
         name: "loan-calculator",
-        short_name: "Loan Calculator",
+        short_name: "قسطلي",
         description: "loan-calculator",
         theme_color: "#ffffff",
         start_url: "/?launcher=pwa",
