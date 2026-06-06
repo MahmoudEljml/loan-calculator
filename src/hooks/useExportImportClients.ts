@@ -49,6 +49,10 @@ export function useExportImportClients() {
           throw new Error('صيغة الملف غير صحيحة');
         }
 
+        if (importedData.dataType !== 'clients') {
+          throw new Error('هذا الملف يحتوي على بيانات أقساط وليس عملاء');
+        }
+
         let successCount = 0;
         let failureCount = 0;
 
@@ -74,7 +78,7 @@ export function useExportImportClients() {
         }
       } catch (error) {
         console.error('Import failed:', error);
-        toast.error('فشل استيراد البيانات - تأكد من صيغة الملف');
+        toast.error(error instanceof Error ? error.message : 'فشل استيراد البيانات - تأكد من صيغة الملف');
       }
     },
     [addClient]

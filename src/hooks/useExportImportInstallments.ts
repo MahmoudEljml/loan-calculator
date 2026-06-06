@@ -49,6 +49,10 @@ export function useExportImportInstallments() {
           throw new Error('صيغة الملف غير صحيحة');
         }
 
+        if (importedData.dataType !== 'installments') {
+          throw new Error('هذا الملف يحتوي على بيانات عملاء وليس أقساط');
+        }
+
         let successCount = 0;
         let failureCount = 0;
 
@@ -82,7 +86,7 @@ export function useExportImportInstallments() {
         }
       } catch (error) {
         console.error('Import failed:', error);
-        toast.error('فشل استيراد البيانات - تأكد من صيغة الملف');
+        toast.error(error instanceof Error ? error.message : 'فشل استيراد البيانات - تأكد من صيغة الملف');
       }
     },
     [addInstallment]
