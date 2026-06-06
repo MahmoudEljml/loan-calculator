@@ -1,16 +1,33 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useInstallmentsStorage } from '../hooks/useInstallmentsStorage';
-import { Plus, Trash2, Edit2, Search, Eye, MessageSquare } from 'lucide-react';
+import { useExportImportInstallments } from '../hooks/useExportImportInstallments';
+import { Plus, Trash2, Edit2, Search, Eye, MessageSquare, Download, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 
 export function InstallmentsPage() {
   const navigate = useNavigate();
   const { installments, isLoaded, deleteInstallment } = useInstallmentsStorage();
+  const { exportInstallments, importInstallments } = useExportImportInstallments();
   const [searchTerm, setSearchTerm] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      await importInstallments(file);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
 
   const filteredInstallments = useMemo(() => {
     if (!searchTerm) return installments;
@@ -245,6 +262,35 @@ export function InstallmentsPage() {
           )}
         </div>
       )}
+
+      {/* Import/Export Buttons */}
+      <div className="flex gap-3 justify-end py-6 border-t mt-8 pt-6">
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".json"
+          onChange={handleFileChange}
+          className="hidden"
+        />
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleImportClick}
+          className="gap-2"
+        >
+          <Upload className="w-4 h-4" />
+          استيراد بيانات
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => exportInstallments()}
+          className="gap-2"
+        >
+          <Download className="w-4 h-4" />
+          تصدير بيانات
+        </Button>
+      </div>
 
       {/* Delete Confirmation Dialog */}
       {deleteConfirm && (

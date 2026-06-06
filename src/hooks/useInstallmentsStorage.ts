@@ -34,7 +34,7 @@ interface LoanCalculatorDB extends DBSchema {
   };
 }
 
-const DB_NAME = 'loan-calculator';
+const DB_NAME = 'loan-calculator-installments';
 const DB_VERSION = 2;
 const STORE_NAME = 'installments';
 

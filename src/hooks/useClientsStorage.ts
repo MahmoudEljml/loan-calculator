@@ -28,10 +28,9 @@ interface ClientsDB extends DBSchema {
   };
 }
 
-const DB_NAME = 'loan-calculator';
+const DB_NAME = 'loan-calculator-clients';
 const DB_VERSION = 2;
 const STORE_NAME = 'clients';
-const OLD_STORAGE_KEY = 'loan-calculator-clients';
 
 let db: IDBPDatabase<ClientsDB> | null = null;
 
@@ -50,46 +49,6 @@ async function getDB() {
   return db;
 }
 
-// Migration helper: Move old localStorage data to IndexedDB
-async function migrateOldData() {
-  try {
-    const oldData = localStorage.getItem(OLD_STORAGE_KEY);
-    if (!oldData) return;
-
-    const parsedData = JSON.parse(oldData) as any[];
-    const database = await getDB();
-
-    for (const oldClient of parsedData) {
-      // Transform old structure to new structure
-      const newClient: ClientData = {
-        id: oldClient.id,
-        client_information: {
-          full_name: oldClient.client_information.full_name,
-          phone_number: oldClient.client_information.phone_number,
-        },
-        business_details: {
-          coordinates: oldClient.business_details.coordinates,
-          business_type: oldClient.business_details.business_type,
-          start_date: oldClient.business_details.start_date,
-          address: oldClient.business_details.address,
-          landmark: oldClient.business_details.landmark,
-        },
-        clientImages: [],
-        createdAt: oldClient.createdAt || new Date().toISOString(),
-        updatedAt: oldClient.updatedAt || new Date().toISOString(),
-      };
-
-      await database.put(STORE_NAME, newClient);
-    }
-
-    // Clear old localStorage after migration
-    localStorage.removeItem(OLD_STORAGE_KEY);
-    console.log('✅ Migration completed: Old client data moved to IndexedDB');
-  } catch (error) {
-    console.error('Migration failed:', error);
-  }
-}
-
 export function useClientsStorage() {
   const [clients, setClients] = useState<ClientData[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -97,9 +56,6 @@ export function useClientsStorage() {
   useEffect(() => {
     const loadClients = async () => {
       try {
-        // First, try to migrate old data if it exists
-        await migrateOldData();
-
         const database = await getDB();
         const allClients = await database.getAll(STORE_NAME);
         setClients(allClients);
