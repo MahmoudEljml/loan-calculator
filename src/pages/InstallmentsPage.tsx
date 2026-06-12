@@ -190,7 +190,7 @@ export function InstallmentsPage() {
       {/* Table - Desktop View */}
       <div
         ref={tableRef}
-      // className="hidden sm:block overflow-x-auto overflow-y-auto rounded-lg border max-h-[70vh]"
+        className="hidden sm:block overflow-x-auto rounded-lg border"
       >
         <table className="w-full text-sm">
           <thead className="bg-muted">
@@ -288,7 +288,7 @@ export function InstallmentsPage() {
       {/* Card View - Mobile */}
       <div
         ref={tableRef}
-        className="sm:hidden space-y-3 overflow-y-auto max-h-[70vh]" >
+        className="sm:hidden space-y-3" >
         {filteredInstallments.map((installment) => (
           <div key={installment.id} className="border rounded-lg p-4 bg-card hover:bg-muted/50 transition-colors">
             <div className="space-y-3">
