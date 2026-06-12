@@ -19,6 +19,7 @@ import './App.css';
 import ShareDialog from '@/components/Dialog.tsx';
 import { Toaster } from '@/components/ui/sonner.tsx';
 import { MapPage } from './pages/MapPage.tsx';
+import { ScrollContainerProvider, useScrollContainer } from './contexts/scroll-container-context.tsx';
 // import { Button } from './components/ui/button.tsx';
 
 const STORAGE_KEY = 'loan-calculator-last-page'
@@ -84,27 +85,31 @@ function App() {
             </div>
           </header>
 
-          {/* --- تم التعديل هنا: إضافة ref للعنصر الذي يحتوي على overflow-y-auto --- */}
-          <div
-            ref={scrollContainerRef}
-            className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain"
-          >
-            <div className="space-y-4 p-3 text-start sm:p-4">
-              <Routes>
-                <Route path={paths.loanCalculator} element={<LoanCalculatorPage />} />
-                <Route path={paths.iscoreCodes} element={<IScoreCodesPage />} />
-                <Route path={paths.customers} element={<ClientsPage />} />
-                <Route path={paths.addClient} element={<AddClientPage />} />
-                <Route path={paths.viewClient} element={<ViewClientPage />} />
-                <Route path={paths.installments} element={<InstallmentsPage />} />
-                <Route path={paths.editInstallment} element={<EditInstallmentPage />} />
-                <Route path={paths.map} element={<MapPage />} />
-                <Route path="*" element={<Navigate to={paths.loanCalculator} replace />} />
-              </Routes>
-              <InstallPWA />
-              <PWABadge />
+          <ScrollContainerProvider>
+            {/* --- تم التعديل هنا: إضافة ref للعنصر الذي يحتوي على overflow-y-auto --- */}
+            <div
+              ref={scrollContainerRef}
+              className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain"
+            >
+              <div className="space-y-4 p-3 text-start sm:p-4">
+                <Routes>
+                  <Route path={paths.loanCalculator} element={<LoanCalculatorPage />} />
+                  <Route path={paths.iscoreCodes} element={<IScoreCodesPage />} />
+                  <Route path={paths.customers} element={<ClientsPage />} />
+                  <Route path={paths.addClient} element={<AddClientPage />} />
+                  <Route path={paths.viewClient} element={<ViewClientPage />} />
+                  <Route path={paths.installments} element={<InstallmentsPage />} />
+                  <Route path={paths.editInstallment} element={<EditInstallmentPage />} />
+                  <Route path={paths.map} element={<MapPage />} />
+                  <Route path="*" element={<Navigate to={paths.loanCalculator} replace />} />
+                </Routes>
+                <InstallPWA />
+                <PWABadge />
+              </div>
             </div>
-          </div>
+          </ScrollContainerProvider>
+
+
         </SidebarInset>
       </TooltipProvider>
 
