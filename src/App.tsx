@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { AppSidebar } from '@/components/app-sidebar.tsx';
 import { ModeToggle } from '@/components/mode-toggle.tsx';
@@ -19,7 +19,6 @@ import './App.css';
 import ShareDialog from '@/components/Dialog.tsx';
 import { Toaster } from '@/components/ui/sonner.tsx';
 import { MapPage } from './pages/MapPage.tsx';
-import { ScrollContainerProvider, useScrollContainer } from './contexts/scroll-container-context.tsx';
 // import { Button } from './components/ui/button.tsx';
 
 const STORAGE_KEY = 'loan-calculator-last-page'
@@ -35,6 +34,9 @@ function App() {
   const location = useLocation()
   const navigate = useNavigate()
   const isInitialized = useRef(false)
+  const [scrollInstallments, setScrollInstallments] = useState(0);
+  const [scrollIScoreCodes, setScrollIScoreCodes] = useState(0);
+  const [scrollCustomers, setScrollCustomers] = useState(0);
 
   // --- جديد: مرجع لعنصر التمرير ---
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -56,8 +58,46 @@ function App() {
     if (isAppRoute(location.pathname)) {
       window.localStorage.setItem(STORAGE_KEY, location.pathname)
     }
+
+    if (location.pathname === paths.installments) {
+      setTimeOutFunction(scrollInstallments)
+    } else if (location.pathname === paths.iscoreCodes) {
+      setTimeOutFunction(scrollIScoreCodes)
+    } else if (location.pathname === paths.customers) {
+      setTimeOutFunction(scrollCustomers)
+    } else {
+      scrollContainerRef?.current?.scrollTo(0, 0);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname])
 
+  const setTimeOutFunction = (value: number) => {
+    setTimeout(() => {
+      scrollContainerRef?.current?.scrollTo(0, value);
+      console.log(value);
+    }, 700);
+  }
+
+  const scrollContainer = document.getElementById("scroll-container");
+  if (scrollContainer) {
+    
+    scrollContainer.onscroll = () => {
+
+      setTimeout(() => {
+        if (location.pathname === paths.installments) {
+          setScrollInstallments(scrollContainer.scrollTop);
+        } else if (location.pathname === paths.iscoreCodes) {
+          setScrollIScoreCodes(scrollContainer.scrollTop);
+        } else if (location.pathname === paths.customers) {
+          setScrollCustomers(scrollContainer.scrollTop);
+        // } else {
+        //   setScrollInstallments(0);
+        }
+
+      }, 200);
+    }
+
+  }
   return (
     <SidebarProvider
       style={
@@ -85,29 +125,28 @@ function App() {
             </div>
           </header>
 
-          <ScrollContainerProvider>
-            {/* --- تم التعديل هنا: إضافة ref للعنصر الذي يحتوي على overflow-y-auto --- */}
-            <div
-              ref={scrollContainerRef}
-              className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain"
-            >
-              <div className="space-y-4 p-3 text-start sm:p-4">
-                <Routes>
-                  <Route path={paths.loanCalculator} element={<LoanCalculatorPage />} />
-                  <Route path={paths.iscoreCodes} element={<IScoreCodesPage />} />
-                  <Route path={paths.customers} element={<ClientsPage />} />
-                  <Route path={paths.addClient} element={<AddClientPage />} />
-                  <Route path={paths.viewClient} element={<ViewClientPage />} />
-                  <Route path={paths.installments} element={<InstallmentsPage />} />
-                  <Route path={paths.editInstallment} element={<EditInstallmentPage />} />
-                  <Route path={paths.map} element={<MapPage />} />
-                  <Route path="*" element={<Navigate to={paths.loanCalculator} replace />} />
-                </Routes>
-                <InstallPWA />
-                <PWABadge />
-              </div>
+
+          {/* --- تم التعديل هنا: إضافة ref للعنصر الذي يحتوي على overflow-y-auto --- */}
+          <div
+            ref={scrollContainerRef} id="scroll-container"
+            className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain"
+          >
+            <div className="space-y-4 p-3 text-start sm:p-4">
+              <Routes>
+                <Route path={paths.loanCalculator} element={<LoanCalculatorPage />} />
+                <Route path={paths.iscoreCodes} element={<IScoreCodesPage />} />
+                <Route path={paths.customers} element={<ClientsPage />} />
+                <Route path={paths.addClient} element={<AddClientPage />} />
+                <Route path={paths.viewClient} element={<ViewClientPage />} />
+                <Route path={paths.installments} element={<InstallmentsPage />} />
+                <Route path={paths.editInstallment} element={<EditInstallmentPage />} />
+                <Route path={paths.map} element={<MapPage />} />
+                <Route path="*" element={<Navigate to={paths.loanCalculator} replace />} />
+              </Routes>
+              <InstallPWA />
+              <PWABadge />
             </div>
-          </ScrollContainerProvider>
+          </div>
 
 
         </SidebarInset>
