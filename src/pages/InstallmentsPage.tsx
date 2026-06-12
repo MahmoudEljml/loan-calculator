@@ -8,8 +8,6 @@ import useLocalStorage from '../hooks/useLocalStorage';
 import { Plus, Trash2, Edit2, Search, Eye, MessageSquare, Download, Upload, MoreVertical, MessageCircle, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 
-
-
 export function InstallmentsPage() {
   const navigate = useNavigate();
   const { installments, isLoaded, deleteInstallment } = useInstallmentsStorage();
@@ -111,6 +109,13 @@ export function InstallmentsPage() {
     return filteredInstallments.reduce((total, installment) => {
       return total + Number(installment.installmentAmount);
     }, 0);
+  }, [filteredInstallments]);
+
+  // Calculate counts of paid and pending installments
+  const installmentCounts = useMemo(() => {
+    const paidCount = filteredInstallments.filter(installment => installment.status === 'paid').length;
+    const pendingCount = filteredInstallments.filter(installment => installment.status === 'pending').length;
+    return { paidCount, pendingCount };
   }, [filteredInstallments]);
 
   const handleDelete = async (id: string) => {
@@ -218,6 +223,20 @@ export function InstallmentsPage() {
             <span className="text-xl font-bold text-blue-600 dark:text-blue-400">
               {totalAmount.toLocaleString()} ج.م
             </span>
+          </div>
+          <div className="grid grid-cols-2 gap-4 mt-4">
+            <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg">
+              <span className="text-sm text-green-700 dark:text-green-300">الأقساط المدفوعة:</span>
+              <div className="text-lg font-bold text-green-700 dark:text-green-300">
+                {installmentCounts.paidCount}
+              </div>
+            </div>
+            <div className="bg-yellow-50 dark:bg-yellow-900/20 p-3 rounded-lg">
+              <span className="text-sm text-yellow-700 dark:text-yellow-300">الأقساط قيد الانتظار:</span>
+              <div className="text-lg font-bold text-yellow-700 dark:text-yellow-300">
+                {installmentCounts.pendingCount}
+              </div>
+            </div>
           </div>
         </div>
         <div className="flex justify-center absolute top-0 left-5 transform -translate-x-1/2">
