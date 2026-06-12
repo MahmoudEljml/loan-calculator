@@ -146,7 +146,7 @@ export function InstallmentsPage() {
   // دالة لمعالجة النقر على العميل
   const handleClientClick = (id: string) => {
     // تحديد أو إلغاء تحديد العميل
-    setSelectedClientId(selectedClientId === id ? null : id);
+    setSelectedClientId(id);
   };
 
   if (!isLoaded) {
