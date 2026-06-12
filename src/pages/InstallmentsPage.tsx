@@ -28,7 +28,6 @@ export function InstallmentsPage() {
   const [statusFilter, setStatusFilter] = useState(filters.statusFilter);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
-
   // حفظ الفلاتر عند تغييرها
   useEffect(() => {
     const newFilters = {
@@ -97,6 +96,13 @@ export function InstallmentsPage() {
 
     return filtered;
   }, [installments, searchTerm, dateFilter, statusFilter]);
+
+  // Calculate total amount of filtered installments
+  const totalAmount = useMemo(() => {
+    return filteredInstallments.reduce((total, installment) => {
+      return total + Number(installment.installmentAmount);
+    }, 0);
+  }, [filteredInstallments]);
 
   const handleDelete = async (id: string) => {
     try {
@@ -171,6 +177,14 @@ export function InstallmentsPage() {
             <option value="paid">مدفوع</option>
           </select>
         </div>
+      </div>
+
+      {/* Total Amount Display */}
+      <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg mb-6 flex justify-between items-center">
+        <span className="font-medium">إجمالي الأقساط المعروضة:</span>
+        <span className="text-xl font-bold text-blue-600 dark:text-blue-400">
+          {totalAmount.toLocaleString()} ج.م
+        </span>
       </div>
 
       {/* Table - Desktop View */}
