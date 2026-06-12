@@ -1,9 +1,10 @@
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useInstallmentsStorage } from '../hooks/useInstallmentsStorage';
 import { useExportImportInstallments } from '../hooks/useExportImportInstallments';
+import useLocalStorage from '../hooks/useLocalStorage';
 import { Plus, Trash2, Edit2, Search, Eye, MessageSquare, Download, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -11,11 +12,34 @@ export function InstallmentsPage() {
   const navigate = useNavigate();
   const { installments, isLoaded, deleteInstallment } = useInstallmentsStorage();
   const { exportInstallments, importInstallments } = useExportImportInstallments();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [dateFilter, setDateFilter] = useState<string>('all');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const tableRef = useRef<HTMLDivElement>(null);
+
+  // استخدام useLocalStorage hook لحفظ الفلاتر
+  const [filters, setFilters] = useLocalStorage('loan_calculator_filters', {
+    searchTerm: '',
+    dateFilter: 'all',
+    statusFilter: 'all',
+  });
+
+  // تحديث الفلاتر عند تغييرها
+  const [searchTerm, setSearchTerm] = useState(filters.searchTerm);
+  const [dateFilter, setDateFilter] = useState(filters.dateFilter);
+  const [statusFilter, setStatusFilter] = useState(filters.statusFilter);
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+
+
+  // حفظ الفلاتر عند تغييرها
+  useEffect(() => {
+    const newFilters = {
+      searchTerm,
+      dateFilter,
+      statusFilter,
+    };
+
+    setFilters(newFilters);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchTerm, dateFilter, statusFilter]);
 
   const handleImportClick = () => {
     fileInputRef.current?.click();
@@ -33,7 +57,7 @@ export function InstallmentsPage() {
 
   const filteredInstallments = useMemo(() => {
     let filtered = [...installments];
-    
+
     // تطبيق فلترة البحث
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
@@ -44,17 +68,17 @@ export function InstallmentsPage() {
           installment.firstGuarantorName.toLowerCase().includes(term)
       );
     }
-    
+
     // تطبيق فلترة التاريخ
     if (dateFilter !== 'all') {
       const today = new Date();
       const currentMonth = today.getMonth();
       const currentYear = today.getFullYear();
-      
+
       filtered = filtered.filter(installment => {
         const dueDate = new Date(installment.dueDate);
         const dueDay = dueDate.getDate();
-        
+
         if (dateFilter === 'days1-9') {
           return dueDay >= 1 && dueDay <= 9 && dueDate.getMonth() === currentMonth && dueDate.getFullYear() === currentYear;
         } else if (dateFilter === 'days10-19') {
@@ -65,12 +89,12 @@ export function InstallmentsPage() {
         return true;
       });
     }
-    
+
     // تطبيق فلترة الحالة
     if (statusFilter !== 'all') {
       filtered = filtered.filter(installment => installment.status === statusFilter);
     }
-    
+
     return filtered;
   }, [installments, searchTerm, dateFilter, statusFilter]);
 
@@ -99,7 +123,7 @@ export function InstallmentsPage() {
   }
 
   return (
-    <div className="space-y-4 text-start" dir="rtl">
+    <div className="space-y-4 text-start overflow-y-visible" dir="rtl" >
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-semibold">إدارة الأقساط</h1>
         <Button onClick={() => navigate('/edit-installment?action=add')} size="sm" className="gap-2">
@@ -118,13 +142,13 @@ export function InstallmentsPage() {
           className="pl-4 pr-10"
         />
       </div>
-      
+
       {/* Filters */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 p-4 bg-muted rounded-lg">
         <div>
           <label className="block text-sm font-medium mb-2">فلترة حسب تاريخ الاستحقاق</label>
-          <select 
-            className="w-full p-2 border rounded-md bg-background" 
+          <select
+            className="w-full p-2 border rounded-md bg-background"
             value={dateFilter}
             onChange={(e) => setDateFilter(e.target.value)}
           >
@@ -134,11 +158,11 @@ export function InstallmentsPage() {
             <option value="days20-end">من يوم 20 إلى آخر الشهر</option>
           </select>
         </div>
-        
+
         <div>
           <label className="block text-sm font-medium mb-2">فلترة حالة الدفع</label>
-          <select 
-            className="w-full p-2 border rounded-md bg-background" 
+          <select
+            className="w-full p-2 border rounded-md bg-background"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
           >
@@ -150,7 +174,10 @@ export function InstallmentsPage() {
       </div>
 
       {/* Table - Desktop View */}
-      <div className="hidden sm:block overflow-x-auto rounded-lg border">
+      <div
+        ref={tableRef}
+      // className="hidden sm:block overflow-x-auto overflow-y-auto rounded-lg border max-h-[70vh]"
+      >
         <table className="w-full text-sm">
           <thead className="bg-muted">
             <tr>
@@ -245,7 +272,9 @@ export function InstallmentsPage() {
       </div>
 
       {/* Card View - Mobile */}
-      <div className="sm:hidden space-y-3">
+      <div
+        ref={tableRef}
+        className="sm:hidden space-y-3 overflow-y-auto max-h-[70vh]" >
         {filteredInstallments.map((installment) => (
           <div key={installment.id} className="border rounded-lg p-4 bg-card hover:bg-muted/50 transition-colors">
             <div className="space-y-3">
