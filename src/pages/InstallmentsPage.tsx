@@ -422,6 +422,7 @@ export function InstallmentsPage() {
                   size="sm"
                   onClick={(e) => {
                     e.stopPropagation();
+                    handleClientClick(installment.id)
                     handleWhatsAppClick(installment.clientPhone);
                   }}
                   className="flex-1 gap-1 text-xs hover:text-green-700"
@@ -436,6 +437,7 @@ export function InstallmentsPage() {
                   size="sm"
                   onClick={(e) => {
                     e.stopPropagation();
+                    handleClientClick(installment.id)
                     navigate(`/edit-installment?id=${installment.id}&action=notes`);
                   }}
                   className="flex-1 gap-1 text-xs"
