@@ -282,7 +282,7 @@ export function InstallmentsPage() {
               </tr>
             ))}
           </tbody>
-        </table>1
+        </table>
       </div>
 
       {/* Card View - Mobile */}
