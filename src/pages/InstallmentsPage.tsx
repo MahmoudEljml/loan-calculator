@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { useInstallmentsStorage } from '../hooks/useInstallmentsStorage';
 import { useExportImportInstallments } from '../hooks/useExportImportInstallments';
 import useLocalStorage from '../hooks/useLocalStorage';
-import { Plus, Trash2, Edit2, Search, Eye, MessageSquare, Download, Upload, MoreVertical, MessageCircle, ChevronDown } from 'lucide-react';
+import { Plus, Trash2, Edit2, Search, Eye, MessageSquare, Download, Upload, MoreVertical, MessageCircle, ChevronDown, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 
 export function InstallmentsPage() {
@@ -25,6 +25,16 @@ export function InstallmentsPage() {
 
   // استخدام useLocalStorage hook لحفظ العميل المحدد
   const [selectedClientId, setSelectedClientId] = useLocalStorage<string | null>('selected_client_id', null);
+
+  // Password protection for total amount
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [passwordInput, setPasswordInput] = useState('');
+  // كلمة المرور الثابتة في الكود
+  const [storedPassword] = useState("qwe");
+  // حفظ كلمة المرور في localStorage للمقارنة
+  const [savedPassword, setSavedPassword] = useLocalStorage<string | null>('total_amount_password', null);
+  // حفظ حالة المصادقة في localStorage
+  const [isAuthenticated, setIsAuthenticated] = useLocalStorage<boolean>('total_amount_authenticated', false);
 
   // استخدام useLocalStorage hook لحفظ حالة إظهار إجمالي الأقساط
   const [showTotalAmount, setShowTotalAmount] = useState(false);
@@ -46,6 +56,14 @@ export function InstallmentsPage() {
     setFilters(newFilters);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchTerm, dateFilter, statusFilter]);
+
+  // التحقق من تطابق كلمة المرور المحفوظة مع كلمة المرور الحالية
+  useEffect(() => {
+    // إذا كانت كلمة المرور المحفوظة مختلفة عن كلمة المرور الحالية، قم بإعادة تعيين حالة المصادقة
+    if (savedPassword && savedPassword !== storedPassword) {
+      setIsAuthenticated(false);
+    }
+  }, [savedPassword, storedPassword, setIsAuthenticated]);
 
   const handleImportClick = () => {
     fileInputRef.current?.click();
@@ -154,6 +172,32 @@ export function InstallmentsPage() {
     setSelectedClientId(id);
   };
 
+  // Handle password verification
+  const handlePasswordSubmit = () => {
+    // التحقق من كلمة المرور
+    if (passwordInput === storedPassword) {
+      // حفظ كلمة المرور في localStorage
+      setSavedPassword(storedPassword);
+      setIsAuthenticated(true);
+      setShowPasswordDialog(false);
+      setPasswordInput('');
+      toast.success('تم التحقق بنجاح');
+    } else {
+      toast.error('كلمة المرور غير صحيحة');
+      setPasswordInput('');
+    }
+  };
+
+  // Show password dialog when trying to view total amount
+  const handleViewTotalAmount = () => {
+    if (!isAuthenticated) {
+      setShowPasswordDialog(true);
+    } else {
+      // إذا تم المصادقة بالفعل، قم بتبديل حالة عرض إجمالي الأقساط
+      setShowTotalAmount(!showTotalAmount);
+    }
+  };
+
   if (!isLoaded) {
     return <div className="text-center py-8">جاري التحميل...</div>;
   }
@@ -209,45 +253,7 @@ export function InstallmentsPage() {
         </div>
       </div>
 
-      {/* Total Amount Display */}
-      <div className="mb-6 relative">
-        <div
-          className={`bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg transition-all duration-500 ease-in-out overflow-hidden
-            ${showTotalAmount
-              ? 'max-h-[500px] opacity-100 mb-4'
-              : 'max-h-0 opacity-0 my-0'
-            }`}
-        >
-          <div className="flex justify-between items-center">
-            <span className="font-medium">إجمالي الأقساط المعروضة:</span>
-            <span className="text-xl font-bold text-blue-600 dark:text-blue-400">
-              {totalAmount.toLocaleString()} ج.م
-            </span>
-          </div>
-          <div className="grid grid-cols-2 gap-4 mt-4">
-            <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg">
-              <span className="text-sm text-green-700 dark:text-green-300">الأقساط المدفوعة:</span>
-              <div className="text-lg font-bold text-green-700 dark:text-green-300">
-                {installmentCounts.paidCount}
-              </div>
-            </div>
-            <div className="bg-yellow-50 dark:bg-yellow-900/20 p-3 rounded-lg">
-              <span className="text-sm text-yellow-700 dark:text-yellow-300">الأقساط قيد الانتظار:</span>
-              <div className="text-lg font-bold text-yellow-700 dark:text-yellow-300">
-                {installmentCounts.pendingCount}
-              </div>
-            </div>
-          </div>
-        </div>
-        <div className="flex justify-center absolute top-0 left-5 transform -translate-x-1/2">
-          <button
-            onClick={() => setShowTotalAmount(!showTotalAmount)}
-          >
 
-            <ChevronDown className={`w-5 h-5 text-blue-600 dark:text-blue-400 transition-transform duration-300 ${showTotalAmount ? 'rotate-180' : ''}`} />
-          </button>
-        </div>
-      </div>
 
 
       {/* Table - Desktop View */}
@@ -545,6 +551,66 @@ export function InstallmentsPage() {
         </div>
       )}
 
+
+
+      {/* Total Amount Display */}
+      <div className="mb-6 relative">
+        <div
+          className={`bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg transition-all duration-500 ease-in-out overflow-hidden
+            ${showTotalAmount
+              ? 'max-h-[500px] opacity-100 mb-4'
+              : 'max-h-0 opacity-0 my-0'
+            }`}
+        >
+          <div className="flex justify-between items-center">
+            <span className="font-medium">إجمالي الأقساط المعروضة:</span>
+            <span className="text-xl font-bold text-blue-600 dark:text-blue-400">
+              {totalAmount.toLocaleString()} ج.م
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-4 mt-4">
+            <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg">
+              <span className="text-sm text-green-700 dark:text-green-300">الأقساط المدفوعة:</span>
+              <div className="text-lg font-bold text-green-700 dark:text-green-300">
+                {installmentCounts.paidCount}
+              </div>
+            </div>
+            <div className="bg-yellow-50 dark:bg-yellow-900/20 p-3 rounded-lg">
+              <span className="text-sm text-yellow-700 dark:text-yellow-300">الأقساط قيد الانتظار:</span>
+              <div className="text-lg font-bold text-yellow-700 dark:text-yellow-300">
+                {installmentCounts.pendingCount}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Button to toggle total amount display - only visible after authentication */}
+        {isAuthenticated && (
+          <div className="flex justify-center absolute top-0 left-5 transform -translate-x-1/2">
+            <button
+              onClick={() => setShowTotalAmount(!showTotalAmount)}
+            >
+              <ChevronDown className={`w-5 h-5 text-blue-600 dark:text-blue-400 transition-transform duration-300 ${showTotalAmount ? 'rotate-180' : ''}`} />
+            </button>
+          </div>
+        )}
+
+        {/* Button to view total amount with password protection - only visible before authentication */}
+        {!isAuthenticated && (
+          <div className="flex justify-center mb-6 absolute top-0 left-5 transform -translate-x-1/2">
+            <Button
+              onClick={handleViewTotalAmount}
+              className="gap-2"
+              variant="outline"
+            >
+              <ChevronDown className="w-4 h-4" />
+
+            </Button>
+          </div>
+        )}
+      </div>
+
+
       {/* Import/Export Buttons */}
       <div className="flex gap-3 justify-end py-6 border-t mt-8 pt-6">
         <input
@@ -596,6 +662,50 @@ export function InstallmentsPage() {
                 onClick={() => handleDelete(deleteConfirm)}
               >
                 حذف
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Password Dialog */}
+      {showPasswordDialog && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-background rounded-lg p-6 max-w-sm w-full text-center" dir="rtl">
+            <h3 className="text-lg font-semibold mb-4 flex items-center justify-center gap-2">
+              <Lock className="w-5 h-5" />
+              تأكيد الهوية
+            </h3>
+            <p className="text-muted-foreground mb-6">
+              يرجى إدخال كلمة المرور
+            </p>
+            <Input
+              type="password"
+              value={passwordInput}
+              onChange={(e) => setPasswordInput(e.target.value)}
+              placeholder="كلمة المرور"
+              className="mb-4"
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handlePasswordSubmit();
+                }
+              }}
+            />
+            <div className="flex gap-4 justify-center">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowPasswordDialog(false);
+                  setPasswordInput('');
+                }}
+              >
+                إلغاء
+              </Button>
+              <Button
+                onClick={handlePasswordSubmit}
+              >
+                تأكيد
               </Button>
             </div>
           </div>
