@@ -12,6 +12,8 @@ export function InstallmentsPage() {
   const { installments, isLoaded, deleteInstallment } = useInstallmentsStorage();
   const { exportInstallments, importInstallments } = useExportImportInstallments();
   const [searchTerm, setSearchTerm] = useState('');
+  const [dateFilter, setDateFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -30,15 +32,47 @@ export function InstallmentsPage() {
   };
 
   const filteredInstallments = useMemo(() => {
-    if (!searchTerm) return installments;
-    const term = searchTerm.toLowerCase();
-    return installments.filter(
-      installment =>
-        installment.clientName.toLowerCase().includes(term) ||
-        installment.clientPhone.toLowerCase().includes(term) ||
-        installment.firstGuarantorName.toLowerCase().includes(term)
-    );
-  }, [installments, searchTerm]);
+    let filtered = [...installments];
+    
+    // تطبيق فلترة البحث
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter(
+        installment =>
+          installment.clientName.toLowerCase().includes(term) ||
+          installment.clientPhone.toLowerCase().includes(term) ||
+          installment.firstGuarantorName.toLowerCase().includes(term)
+      );
+    }
+    
+    // تطبيق فلترة التاريخ
+    if (dateFilter !== 'all') {
+      const today = new Date();
+      const currentMonth = today.getMonth();
+      const currentYear = today.getFullYear();
+      
+      filtered = filtered.filter(installment => {
+        const dueDate = new Date(installment.dueDate);
+        const dueDay = dueDate.getDate();
+        
+        if (dateFilter === 'days1-9') {
+          return dueDay >= 1 && dueDay <= 9 && dueDate.getMonth() === currentMonth && dueDate.getFullYear() === currentYear;
+        } else if (dateFilter === 'days10-19') {
+          return dueDay >= 10 && dueDay <= 19 && dueDate.getMonth() === currentMonth && dueDate.getFullYear() === currentYear;
+        } else if (dateFilter === 'days20-end') {
+          return dueDay >= 20 && dueDate.getMonth() === currentMonth && dueDate.getFullYear() === currentYear;
+        }
+        return true;
+      });
+    }
+    
+    // تطبيق فلترة الحالة
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(installment => installment.status === statusFilter);
+    }
+    
+    return filtered;
+  }, [installments, searchTerm, dateFilter, statusFilter]);
 
   const handleDelete = async (id: string) => {
     try {
@@ -83,6 +117,36 @@ export function InstallmentsPage() {
           onChange={(e) => setSearchTerm(e.target.value)}
           className="pl-4 pr-10"
         />
+      </div>
+      
+      {/* Filters */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 p-4 bg-muted rounded-lg">
+        <div>
+          <label className="block text-sm font-medium mb-2">فلترة حسب تاريخ الاستحقاق</label>
+          <select 
+            className="w-full p-2 border rounded-md bg-background" 
+            value={dateFilter}
+            onChange={(e) => setDateFilter(e.target.value)}
+          >
+            <option value="all">كل التواريخ</option>
+            <option value="days1-9">من يوم 1 إلى يوم 9</option>
+            <option value="days10-19">من يوم 10 إلى يوم 19</option>
+            <option value="days20-end">من يوم 20 إلى آخر الشهر</option>
+          </select>
+        </div>
+        
+        <div>
+          <label className="block text-sm font-medium mb-2">فلترة حالة الدفع</label>
+          <select 
+            className="w-full p-2 border rounded-md bg-background" 
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+          >
+            <option value="all">كل الحالات</option>
+            <option value="pending">قيد الانتظار</option>
+            <option value="paid">مدفوع</option>
+          </select>
+        </div>
       </div>
 
       {/* Table - Desktop View */}
