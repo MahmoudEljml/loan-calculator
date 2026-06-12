@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 interface ButtonProps {
     text: string;
     icon?: React.ReactNode;
-    size?: 'small' | 'medium' | 'large';
+    size?: 'very-small' | 'small' | 'medium' | 'large';
     onClick?: () => void;
     className?: string;
     textPosition?: 'top' | 'bottom' | 'left' | 'right';
@@ -35,6 +35,7 @@ export default function FAB({
     }, [showText]);
 
     const sizeClasses = {
+        "very-small": 'w-6 h-6',
         small: 'w-10 h-10',
         medium: 'w-12 h-12',
         large: 'w-14 h-14'

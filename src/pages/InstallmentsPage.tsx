@@ -5,8 +5,10 @@ import { Input } from '@/components/ui/input';
 import { useInstallmentsStorage } from '../hooks/useInstallmentsStorage';
 import { useExportImportInstallments } from '../hooks/useExportImportInstallments';
 import useLocalStorage from '../hooks/useLocalStorage';
-import { Plus, Trash2, Edit2, Search, Eye, MessageSquare, Download, Upload, MoreVertical, MessageCircle } from 'lucide-react';
+import { Plus, Trash2, Edit2, Search, Eye, MessageSquare, Download, Upload, MoreVertical, MessageCircle, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
+
+
 
 export function InstallmentsPage() {
   const navigate = useNavigate();
@@ -22,6 +24,12 @@ export function InstallmentsPage() {
     dateFilter: 'all',
     statusFilter: 'all',
   });
+
+  // استخدام useLocalStorage hook لحفظ العميل المحدد
+  const [selectedClientId, setSelectedClientId] = useLocalStorage<string | null>('selected_client_id', null);
+
+  // استخدام useLocalStorage hook لحفظ حالة إظهار إجمالي الأقساط
+  const [showTotalAmount, setShowTotalAmount] = useState(false);
 
   // تحديث الفلاتر عند تغييرها
   const [searchTerm, setSearchTerm] = useState(filters.searchTerm);
@@ -109,6 +117,10 @@ export function InstallmentsPage() {
     try {
       await deleteInstallment(id);
       setDeleteConfirm(null);
+      // إذا تم حذف العميل المحدد، قم بإلغاء تحديده
+      if (id === selectedClientId) {
+        setSelectedClientId(null);
+      }
     } catch (error) {
       console.error('Failed to delete installment:', error);
       toast.error('فشل في حذف القسط');
@@ -129,6 +141,12 @@ export function InstallmentsPage() {
 
   const getStatusLabel = (status: 'pending' | 'paid') => {
     return status === 'paid' ? 'مدفوع' : 'قيد الانتظار';
+  };
+
+  // دالة لمعالجة النقر على العميل
+  const handleClientClick = (id: string) => {
+    // تحديد أو إلغاء تحديد العميل
+    setSelectedClientId(selectedClientId === id ? null : id);
   };
 
   if (!isLoaded) {
@@ -187,12 +205,31 @@ export function InstallmentsPage() {
       </div>
 
       {/* Total Amount Display */}
-      <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg mb-6 flex justify-between items-center">
-        <span className="font-medium">إجمالي الأقساط المعروضة:</span>
-        <span className="text-xl font-bold text-blue-600 dark:text-blue-400">
-          {totalAmount.toLocaleString()} ج.م
-        </span>
+      <div className="mb-6 relative">
+        <div
+          className={`bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg transition-all duration-500 ease-in-out overflow-hidden
+            ${showTotalAmount
+              ? 'max-h-[500px] opacity-100 mb-4'
+              : 'max-h-0 opacity-0 my-0'
+            }`}
+        >
+          <div className="flex justify-between items-center">
+            <span className="font-medium">إجمالي الأقساط المعروضة:</span>
+            <span className="text-xl font-bold text-blue-600 dark:text-blue-400">
+              {totalAmount.toLocaleString()} ج.م
+            </span>
+          </div>
+        </div>
+        <div className="flex justify-center absolute top-0 left-5 transform -translate-x-1/2">
+          <button
+            onClick={() => setShowTotalAmount(!showTotalAmount)}
+          >
+
+            <ChevronDown className={`w-5 h-5 text-blue-600 dark:text-blue-400 transition-transform duration-300 ${showTotalAmount ? 'rotate-180' : ''}`} />
+          </button>
+        </div>
       </div>
+
 
       {/* Table - Desktop View */}
       <div
@@ -212,7 +249,11 @@ export function InstallmentsPage() {
           </thead>
           <tbody>
             {filteredInstallments.map((installment) => (
-              <tr key={installment.id} className="border-t hover:bg-muted/50 transition-colors">
+              <tr
+                key={installment.id}
+                className={`border-t hover:bg-muted/50 transition-colors cursor-pointer ${selectedClientId === installment.id ? 'border-2 border-orange-500 dark:border-orange-400' : ''}`}
+                onClick={() => handleClientClick(installment.id)}
+              >
                 <td className="px-4 py-3">
                   {installment.clientImages.length > 0 ? (
                     <div className="flex gap-1">
@@ -246,7 +287,11 @@ export function InstallmentsPage() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => handleWhatsAppClick(installment.clientPhone)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleClientClick(installment.id);
+                        handleWhatsAppClick(installment.clientPhone);
+                      }}
                       className="gap-1 hover:text-green-700"
                       title="واتساب"
                     >
@@ -257,9 +302,14 @@ export function InstallmentsPage() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => navigate(`/edit-installment?id=${installment.id}&action=notes`)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleClientClick(installment.id);
+                        navigate(`/edit-installment?id=${installment.id}&action=notes`);
+                      }}
                       className="gap-1"
                       title="ملاحظات"
+
                     >
                       <MessageSquare className="w-4 h-4" />
                       <span className="hidden sm:inline text-xs">
@@ -272,7 +322,10 @@ export function InstallmentsPage() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => setActiveDropdown(activeDropdown === installment.id ? null : installment.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveDropdown(activeDropdown === installment.id ? null : installment.id);
+                        }}
                         className="gap-1"
                         title="الإجراءات"
                       >
@@ -336,7 +389,11 @@ export function InstallmentsPage() {
         ref={tableRef}
         className="sm:hidden space-y-3" >
         {filteredInstallments.map((installment) => (
-          <div key={installment.id} className="border rounded-lg p-4 bg-card hover:bg-muted/50 transition-colors">
+          <div
+            key={installment.id}
+            className={`border rounded-lg p-4 bg-card hover:bg-muted/50 transition-colors cursor-pointer ${selectedClientId === installment.id ? 'border-2 border-orange-500 dark:border-orange-400' : ''}`}
+            onClick={() => handleClientClick(installment.id)}
+          >
             <div className="space-y-3">
               <div className="flex gap-3 items-start justify-between">
                 <div className="flex-1">
@@ -363,7 +420,10 @@ export function InstallmentsPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => handleWhatsAppClick(installment.clientPhone)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleWhatsAppClick(installment.clientPhone);
+                  }}
                   className="flex-1 gap-1 text-xs hover:text-green-700"
                 >
                   <MessageCircle className="w-3 h-3" />
@@ -374,7 +434,10 @@ export function InstallmentsPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => navigate(`/edit-installment?id=${installment.id}&action=notes`)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(`/edit-installment?id=${installment.id}&action=notes`);
+                  }}
                   className="flex-1 gap-1 text-xs"
                 >
                   <MessageSquare className="w-3 h-3" />
@@ -386,7 +449,10 @@ export function InstallmentsPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setActiveDropdown(activeDropdown === installment.id ? null : installment.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActiveDropdown(activeDropdown === installment.id ? null : installment.id);
+                    }}
                     className="flex-1 gap-1 text-xs"
                   >
                     <MoreVertical className="w-3 h-3" />
