@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { useInstallmentsStorage } from '../hooks/useInstallmentsStorage';
 import { useExportImportInstallments } from '../hooks/useExportImportInstallments';
 import useLocalStorage from '../hooks/useLocalStorage';
-import { Plus, Trash2, Edit2, Search, Eye, MessageSquare, Download, Upload } from 'lucide-react';
+import { Plus, Trash2, Edit2, Search, Eye, MessageSquare, Download, Upload, MoreVertical, MessageCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 export function InstallmentsPage() {
@@ -14,6 +14,7 @@ export function InstallmentsPage() {
   const { exportInstallments, importInstallments } = useExportImportInstallments();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const tableRef = useRef<HTMLDivElement>(null);
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
 
   // استخدام useLocalStorage hook لحفظ الفلاتر
   const [filters, setFilters] = useLocalStorage('loan_calculator_filters', {
@@ -112,6 +113,12 @@ export function InstallmentsPage() {
       console.error('Failed to delete installment:', error);
       toast.error('فشل في حذف القسط');
     }
+  };
+
+  const handleWhatsAppClick = (phone: string) => {
+    // تحويل رقم الهاتف إلى التنسيق الصحيح للواتساب
+    const formattedPhone = phone.replace(/^0/, '20').replace(/\s/g, '');
+    window.open(`https://wa.me/${formattedPhone}`, '_blank');
   };
 
   const getStatusColor = (status: 'pending' | 'paid') => {
@@ -234,27 +241,19 @@ export function InstallmentsPage() {
                   </span>
                 </td>
                 <td className="px-4 py-3">
-                  <div className="flex gap-1 justify-center">
+                  <div className="flex gap-1 justify-center items-center">
+                    {/* زر الواتساب */}
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => navigate(`/edit-installment?id=${installment.id}&action=view`)}
-                      className="gap-1"
-                      title="عرض"
+                      onClick={() => handleWhatsAppClick(installment.clientPhone)}
+                      className="gap-1 hover:text-green-700"
+                      title="واتساب"
                     >
-                      <Eye className="w-4 h-4" />
-                      <span className="hidden sm:inline">عرض</span>
+                      <MessageCircle className="w-4 h-4" />
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => navigate(`/edit-installment?id=${installment.id}&action=edit`)}
-                      className="gap-1"
-                      title="تعديل"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                      <span className="hidden sm:inline">تعديل</span>
-                    </Button>
+
+                    {/* زر الملاحظات */}
                     <Button
                       variant="ghost"
                       size="sm"
@@ -267,16 +266,63 @@ export function InstallmentsPage() {
                         {installment.notes.length}
                       </span>
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setDeleteConfirm(installment.id)}
-                      className="gap-1 text-destructive hover:text-destructive"
-                      title="حذف"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                      <span className="hidden sm:inline">حذف</span>
-                    </Button>
+
+                    {/* القائمة المنسدلة */}
+                    <div className="relative">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setActiveDropdown(activeDropdown === installment.id ? null : installment.id)}
+                        className="gap-1"
+                        title="الإجراءات"
+                      >
+                        <MoreVertical className="w-4 h-4" />
+                      </Button>
+
+                      {/* خيارات القائمة المنسدلة */}
+                      {activeDropdown === installment.id && (
+                        <div className="absolute left-0 mt-2 w-48 bg-background border rounded-md shadow-lg z-10">
+                          <div className="py-1">
+                            <button
+                              className="block w-full text-right px-4 py-2 text-sm hover:bg-muted"
+                              onClick={() => {
+                                navigate(`/edit-installment?id=${installment.id}&action=view`);
+                                setActiveDropdown(null);
+                              }}
+                            >
+                              <div className="flex items-center gap-2">
+                                <Eye className="w-4 h-4" />
+                                <span>عرض</span>
+                              </div>
+                            </button>
+                            <button
+                              className="block w-full text-right px-4 py-2 text-sm hover:bg-muted"
+                              onClick={() => {
+                                navigate(`/edit-installment?id=${installment.id}&action=edit`);
+                                setActiveDropdown(null);
+                              }}
+                            >
+                              <div className="flex items-center gap-2">
+                                <Edit2 className="w-4 h-4" />
+                                <span>تعديل</span>
+                              </div>
+                            </button>
+                            <button
+                              className="block w-full text-right px-4 py-2 text-sm text-destructive hover:bg-muted"
+                              onClick={() => {
+                                setDeleteConfirm(installment.id);
+                                setActiveDropdown(null);
+                              }}
+                            >
+                              <div className="flex items-center gap-2">
+                                <Trash2 className="w-4 h-4" />
+                                <span>حذف</span>
+                              </div>
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </td>
               </tr>
@@ -313,24 +359,18 @@ export function InstallmentsPage() {
 
               </div>
               <div className="flex gap-2 pt-2 border-t flex-wrap">
+                {/* زر الواتساب */}
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => navigate(`/edit-installment?id=${installment.id}&action=view`)}
-                  className="flex-1 gap-1 text-xs"
+                  onClick={() => handleWhatsAppClick(installment.clientPhone)}
+                  className="flex-1 gap-1 text-xs hover:text-green-700"
                 >
-                  <Eye className="w-3 h-3" />
-                  عرض
+                  <MessageCircle className="w-3 h-3" />
+                  واتساب
                 </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => navigate(`/edit-installment?id=${installment.id}&action=edit`)}
-                  className="flex-1 gap-1 text-xs"
-                >
-                  <Edit2 className="w-3 h-3" />
-                  تعديل
-                </Button>
+
+                {/* زر الملاحظات */}
                 <Button
                   variant="outline"
                   size="sm"
@@ -340,15 +380,63 @@ export function InstallmentsPage() {
                   <MessageSquare className="w-3 h-3" />
                   ({installment.notes.length})
                 </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setDeleteConfirm(installment.id)}
-                  className="flex-1 gap-1 text-xs text-destructive hover:text-destructive"
-                >
-                  <Trash2 className="w-3 h-3" />
-                  حذف
-                </Button>
+
+                {/* القائمة المنسدلة */}
+                <div className="relative">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setActiveDropdown(activeDropdown === installment.id ? null : installment.id)}
+                    className="flex-1 gap-1 text-xs"
+                  >
+                    <MoreVertical className="w-3 h-3" />
+                    الإجراءات
+                  </Button>
+
+                  {/* خيارات القائمة المنسدلة */}
+                  {activeDropdown === installment.id && (
+                    <div className="absolute left-0 mt-2 w-48 bg-background border rounded-md shadow-lg z-10">
+                      <div className="py-1">
+                        <button
+                          className="block w-full text-right px-4 py-2 text-sm hover:bg-muted"
+                          onClick={() => {
+                            navigate(`/edit-installment?id=${installment.id}&action=view`);
+                            setActiveDropdown(null);
+                          }}
+                        >
+                          <div className="flex items-center gap-2">
+                            <Eye className="w-4 h-4" />
+                            <span>عرض</span>
+                          </div>
+                        </button>
+                        <button
+                          className="block w-full text-right px-4 py-2 text-sm hover:bg-muted"
+                          onClick={() => {
+                            navigate(`/edit-installment?id=${installment.id}&action=edit`);
+                            setActiveDropdown(null);
+                          }}
+                        >
+                          <div className="flex items-center gap-2">
+                            <Edit2 className="w-4 h-4" />
+                            <span>تعديل</span>
+                          </div>
+                        </button>
+                        <button
+                          className="block w-full text-right px-4 py-2 text-sm text-destructive hover:bg-muted"
+                          onClick={() => {
+                            setDeleteConfirm(installment.id);
+                            setActiveDropdown(null);
+                          }}
+                        >
+                          <div className="flex items-center gap-2">
+                            <Trash2 className="w-4 h-4" />
+                            <span>حذف</span>
+                          </div>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
