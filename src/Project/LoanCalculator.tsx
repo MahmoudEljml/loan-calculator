@@ -6,23 +6,49 @@ import type { PartCalculateProps, RequiredDocumentsProps, ShareWhatsAppProps } f
 import FAB from "@/components/FAB";
 import ArrowIcon from "@/IconSVG/ArrowIcon";
 // import CurrentChipInformation from "./CurrentChipInformation";
-import useLocalStorage from '@/hooks/useLocalStorage'; 
+import useLocalStorage from '@/hooks/useLocalStorage';
 
+
+// عدد البطاقات: 1 عميل + 1 ضامن (≤30000) أو 1 عميل + 2 ضامن (>30000)
+const getCardCount = (amount: number) => amount > 30000 ? 3 : 2;
+
+// حساب تكلفة iScore: 40 جنيه لكل بطاقة
+const getIScoreFees = (amount: number) => getCardCount(amount) * 40;
 
 const getRequiredDocuments = (amount: number) => {
     const personalDocuments = ['صورة البطاقة الشخصية'];
 
+    const cardCount = getCardCount(amount);
     const guaranteeDocuments = amount > 30000 ? ['صورة بطاقتي الضامنين'] : ['صورة بطاقة الضامن'];
 
-    const otherDocuments = ['وصلين (غاز/مياه/كهرباء)', 'صورة من عقد إيجار سارى منذ سنه حتى انتهاء فتره السداد'];
+    // الوصلات: إذا بطاقة واحدة ضامن = وصلين عادي، إذا بطاقتان = وصلين مرافق، إذا 3 بطاقات = 3 وصلات مرافق
+    let receiptsText: string;
+    if (cardCount === 2) {
+        receiptsText = 'وصلين (غاز/مياه/كهرباء)';
+    } else if (cardCount === 3) {
+        receiptsText = 'وصلين مرافق (غاز/مياه/كهرباء)';
+    } else {
+        receiptsText = `${cardCount} وصلات مرافق (غاز/مياه/كهرباء)`;
+    }
+
+    const otherDocuments = [receiptsText, 'صورة من عقد إيجار سارى منذ سنه حتى انتهاء فتره السداد'];
+
+    // iScore لكل بطاقة بـ 40 جنيه
+    const iScoreText = `${getIScoreFees(amount)} ج.م رسوم iScore (${cardCount} بطاقات × 40 ج.م)`;
+
+    // ${getIScoreFees(amount)} ج.م رسوم iScore (${cardCount} بطاقات × 40 ج.م)
 
     const additionalDocuments = [];
+
+    if (amount > 50000) {
+        additionalDocuments.push('2 شيك بريدي');
+    }
 
     if (amount > 100000) {
         additionalDocuments.push('السجل التجاري');
         additionalDocuments.push('البطاقة الضريبية');
     }
-
+    additionalDocuments.push(iScoreText);
     return [...personalDocuments, ...guaranteeDocuments, ...otherDocuments, ...additionalDocuments];
 };
 
@@ -44,9 +70,10 @@ const ProfessionalLoanCalculator = () => {
         monthlyPayment: true,
         // totalInterest: false,
         // totalAmount: false,
-        adminFees: false,
-        insuranceFees: false, // Added insurance fees to share options
         interest: false,
+        adminFees: false,
+        insuranceFees: false,
+        iscore: false,
         documents: true
     });
 
@@ -105,19 +132,16 @@ const ProfessionalLoanCalculator = () => {
             message += `رسوم التأمين: ${results.insuranceFees.toLocaleString()} ج.م\n`;
         }
 
+        if (shareOptions.iscore) {
+            message += `iScore: ${getIScoreFees(amount)} ج.م (${getCardCount(amount)} بطاقات × 40 ج.م)\n`;
+        }
+
         if (shareOptions.documents) {
             message += `\n\n*الأوراق المطلوبة:*\n`;
             const docs = getRequiredDocuments(amount);
-            message += `• ${docs[0]}\n`; // صورة البطاقة الشخصية
-            message += `• ${docs[1]}\n`; // صورة بطاقة الضامن/الضامنين
-            message += `• ${docs[2]}\n`; // وصلين
-            message += `• ${docs[3]}\n`; // عقد الإيجار
-            if (docs.length > 4) {
-                message += `• ${docs[4]}\n`; // السجل التجاري
-            }
-            if (docs.length > 5) {
-                message += `• ${docs[5]}\n`; // البطاقة الضريبية
-            }
+            docs.forEach(doc => {
+                message += `• ${doc}\n`;
+            });
         }
         return message;
     };
@@ -475,39 +499,18 @@ function PartCalculate({
 }
 
 function RequiredDocuments({ amount }: RequiredDocumentsProps) {
+    const docs = getRequiredDocuments(amount);
     return (
         <>
             <div className="mt-6 border-t border-border pt-4">
                 <h3 className="text-lg font-bold mb-3">الأوراق المطلوبة:</h3>
                 <div className="space-y-2">
-                    <div className="flex items-start">
-                        <span className="text-green-400 ml-2">•</span>
-                        <span>صورة البطاقة الشخصية</span>
-                    </div>
-                    <div className="flex items-start">
-                        <span className="text-green-400 ml-2">•</span>
-                        <span>{amount > 30000 ? 'صورة بطاقتي الضامنين' : 'صورة بطاقة الضامن'}</span>
-                    </div>
-                    <div className="flex items-start">
-                        <span className="text-green-400 ml-2">•</span>
-                        <span>وصلين (غاز/مياه/كهرباء)</span>
-                    </div>
-                    <div className="flex items-start">
-                        <span className="text-green-400 ml-2">•</span>
-                        <span>صورة من عقد إيجار سارى منذ سنه وحتى انتهاء فتره السداد</span>
-                    </div>
-                    {amount > 100000 && (
-                        <>
-                            <div className="flex items-start">
-                                <span className="text-green-400 ml-2">•</span>
-                                <span>السجل التجاري</span>
-                            </div>
-                            <div className="flex items-start">
-                                <span className="text-green-400 ml-2">•</span>
-                                <span>البطاقة الضريبية</span>
-                            </div>
-                        </>
-                    )}
+                    {docs.map((doc, index) => (
+                        <div key={index} className="flex items-start">
+                            <span className="text-green-400 ml-2">•</span>
+                            <span>{doc}</span>
+                        </div>
+                    ))}
                 </div>
             </div>
         </>
@@ -555,8 +558,9 @@ function ShareWhatsApp({
                         {key === 'totalInterest' && 'إجمالي الفوائد'}
                         {key === 'totalAmount' && 'إجمالي الاقساط'}
                         {key === 'adminFees' && 'المصاريف الإدارية'}
-                        {key === 'insuranceFees' && 'رسوم التأمين'}
                         {key === 'interest' && 'الفائدة السنوية'}
+                        {key === 'iscore' && 'رسوم iScore'}
+                        {key === 'insuranceFees' && 'رسوم التأمين'}
                         {key === 'documents' && 'الأوراق المطلوبة'}
 
                     </label>

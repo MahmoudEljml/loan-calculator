@@ -16,6 +16,7 @@ export interface ShareOptions {
     adminFees: boolean;
     insuranceFees: boolean;
     interest: boolean;
+    iscore: boolean;
     documents: boolean;
 }
 
