@@ -19,26 +19,26 @@ const getRequiredDocuments = (amount: number) => {
     const personalDocuments = ['صورة البطاقة الشخصية'];
 
     const cardCount = getCardCount(amount);
-    const guaranteeDocuments = amount > 30000 ? ['صورة بطاقتي الضامنين'] : ['صورة بطاقة الضامن'];
+    const guaranteeDocuments = amount > 30000 ? ['صورة بطاقة ضامنين (2 ضامن)'] : ['صورة بطاقة الضامن'];
 
     // عميل + 1 ضامن (2 بطاقات) = وصلين مرافق، عميل + 2 ضامن (3 بطاقات) = 3 وصلات مرافق
     const receiptsText = cardCount === 2
         ? 'وصلين (غاز/مياه/كهرباء)'
         : '3 وصلات (غاز/مياه/كهرباء)';
 
-    const otherDocuments = [receiptsText, 'صورة من عقد إيجار سارى منذ سنه حتى انتهاء فتره السداد'];
+    const otherDocuments = [receiptsText, 'صورة عقد إيجار (مضى عليه عام) ومستمر حتى نهاية الأقساط'];
 
     const additionalDocuments: string[] = [];
-
-    if (amount > 50000) {
-        additionalDocuments.push('2 شيك بريدي');
-    }
 
     if (amount > 100000) {
         additionalDocuments.push('السجل التجاري');
         additionalDocuments.push('البطاقة الضريبية');
     }
 
+    if (amount > 50000) {
+        additionalDocuments.push('شيك بريدي (2 شيكات)');
+    }
+    
     return [...personalDocuments, ...guaranteeDocuments, ...otherDocuments, ...additionalDocuments];
 };
 
