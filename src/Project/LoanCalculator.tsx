@@ -21,24 +21,14 @@ const getRequiredDocuments = (amount: number) => {
     const cardCount = getCardCount(amount);
     const guaranteeDocuments = amount > 30000 ? ['صورة بطاقتي الضامنين'] : ['صورة بطاقة الضامن'];
 
-    // الوصلات: إذا بطاقة واحدة ضامن = وصلين عادي، إذا بطاقتان = وصلين مرافق، إذا 3 بطاقات = 3 وصلات مرافق
-    let receiptsText: string;
-    if (cardCount === 2) {
-        receiptsText = 'وصلين (غاز/مياه/كهرباء)';
-    } else if (cardCount === 3) {
-        receiptsText = 'وصلين مرافق (غاز/مياه/كهرباء)';
-    } else {
-        receiptsText = `${cardCount} وصلات مرافق (غاز/مياه/كهرباء)`;
-    }
+    // عميل + 1 ضامن (2 بطاقات) = وصلين مرافق، عميل + 2 ضامن (3 بطاقات) = 3 وصلات مرافق
+    const receiptsText = cardCount === 2
+        ? 'وصلين (غاز/مياه/كهرباء)'
+        : '3 وصلات (غاز/مياه/كهرباء)';
 
     const otherDocuments = [receiptsText, 'صورة من عقد إيجار سارى منذ سنه حتى انتهاء فتره السداد'];
 
-    // iScore لكل بطاقة بـ 40 جنيه
-    const iScoreText = `${getIScoreFees(amount)} ج.م رسوم iScore (${cardCount} بطاقات × 40 ج.م)`;
-
-    // ${getIScoreFees(amount)} ج.م رسوم iScore (${cardCount} بطاقات × 40 ج.م)
-
-    const additionalDocuments = [];
+    const additionalDocuments: string[] = [];
 
     if (amount > 50000) {
         additionalDocuments.push('2 شيك بريدي');
@@ -48,7 +38,7 @@ const getRequiredDocuments = (amount: number) => {
         additionalDocuments.push('السجل التجاري');
         additionalDocuments.push('البطاقة الضريبية');
     }
-    additionalDocuments.push(iScoreText);
+
     return [...personalDocuments, ...guaranteeDocuments, ...otherDocuments, ...additionalDocuments];
 };
 
@@ -133,7 +123,7 @@ const ProfessionalLoanCalculator = () => {
         }
 
         if (shareOptions.iscore) {
-            message += `iScore: ${getIScoreFees(amount)} ج.م (${getCardCount(amount)} بطاقات × 40 ج.م)\n`;
+            message += `رسوم اى سكور: ${getIScoreFees(amount)} ج.م (${getCardCount(amount)} بطاقات × 40 ج.م)\n`;
         }
 
         if (shareOptions.documents) {
@@ -500,8 +490,11 @@ function PartCalculate({
 
 function RequiredDocuments({ amount }: RequiredDocumentsProps) {
     const docs = getRequiredDocuments(amount);
+    const cardCount = getCardCount(amount);
+    const iscoreFees = getIScoreFees(amount);
     return (
         <>
+            {/* الأوراق المطلوبة */}
             <div className="mt-6 border-t border-border pt-4">
                 <h3 className="text-lg font-bold mb-3">الأوراق المطلوبة:</h3>
                 <div className="space-y-2">
@@ -511,6 +504,15 @@ function RequiredDocuments({ amount }: RequiredDocumentsProps) {
                             <span>{doc}</span>
                         </div>
                     ))}
+                </div>
+            </div>
+
+            {/* رسوم iScore */}
+            <div className="mt-4 border-t border-border pt-4">
+                <h3 className="text-lg font-bold mb-3">رسوم iScore:</h3>
+                <div className="flex items-start">
+                    <span className="text-green-400 ml-2">•</span>
+                    <span>{iscoreFees} ج.م ({cardCount} بطاقات × 40 ج.م)</span>
                 </div>
             </div>
         </>
