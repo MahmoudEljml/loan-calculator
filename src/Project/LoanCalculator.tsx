@@ -35,7 +35,7 @@ const getRequiredDocuments = (amount: number) => {
         additionalDocuments.push('البطاقة الضريبية');
     }
 
-    if (amount > 50000) {
+    if (amount >= 50000) {
         additionalDocuments.push('شيك بريدي (2 شيكات)');
     }
     
