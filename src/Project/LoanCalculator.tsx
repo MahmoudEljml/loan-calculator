@@ -38,7 +38,7 @@ const getRequiredDocuments = (amount: number) => {
     if (amount >= 50000) {
         additionalDocuments.push('شيك بريدي (2 شيكات)');
     }
-    
+
     return [...personalDocuments, ...guaranteeDocuments, ...otherDocuments, ...additionalDocuments];
 };
 
@@ -190,7 +190,6 @@ const ProfessionalLoanCalculator = () => {
 
                         <LoanDetails results={results} currentTier={currentTier} amount={amount} />
                         <RequiredDocuments amount={amount} />
-
                         <ShareWhatsApp
                             phoneNumber={phoneNumber}
                             setPhoneNumber={setPhoneNumber}
@@ -202,6 +201,7 @@ const ProfessionalLoanCalculator = () => {
                     </div>
                 )}
             </div>
+                <a href="tel:+201000000000">اتصل بنا الآن</a>
         </div>
     );
 };
