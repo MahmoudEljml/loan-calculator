@@ -5,12 +5,14 @@ import { Input } from '@/components/ui/input';
 import { useInstallmentsStorage } from '../hooks/useInstallmentsStorage';
 import { useExportImportInstallments } from '../hooks/useExportImportInstallments';
 import useLocalStorage from '../hooks/useLocalStorage';
-import { Plus, Trash2, Edit2, Search, Eye, MessageSquare, Download, Upload, MoreVertical, MessageCircle, ChevronDown, Lock } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Plus, Search, Download, Upload, ChevronDown, Lock } from 'lucide-react';
 import { toast } from 'sonner';
+import { InstallmentRow } from '@/components/InstallmentRow';
 
 export function InstallmentsPage() {
   const navigate = useNavigate();
-  const { installments, isLoaded, deleteInstallment } = useInstallmentsStorage();
+  const { installments, isLoaded, deleteInstallment, updateInstallment } = useInstallmentsStorage();
   const { exportInstallments, importInstallments } = useExportImportInstallments();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const tableRef = useRef<HTMLDivElement>(null);
@@ -38,12 +40,18 @@ export function InstallmentsPage() {
 
   // استخدام useLocalStorage hook لحفظ حالة إظهار إجمالي الأقساط
   const [showTotalAmount, setShowTotalAmount] = useState(false);
+  const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
+  const [bulkExtendScope, setBulkExtendScope] = useState<'all' | 'paid' | 'pending'>('paid');
 
   // تحديث الفلاتر عند تغييرها
   const [searchTerm, setSearchTerm] = useState(filters.searchTerm);
   const [dateFilter, setDateFilter] = useState(filters.dateFilter);
   const [statusFilter, setStatusFilter] = useState(filters.statusFilter);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+
+  const [targetMonth, setTargetMonth] = useState<number>(new Date().getMonth());
+  const [targetYear, setTargetYear] = useState<number>(new Date().getFullYear());
+  const [isBulkExtending, setIsBulkExtending] = useState(false);
 
   // حفظ الفلاتر عند تغييرها
   useEffect(() => {
@@ -64,10 +72,6 @@ export function InstallmentsPage() {
       setIsAuthenticated(false);
     }
   }, [savedPassword, storedPassword, setIsAuthenticated]);
-
-  const handleImportClick = () => {
-    fileInputRef.current?.click();
-  };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -147,6 +151,91 @@ export function InstallmentsPage() {
     } catch (error) {
       console.error('Failed to delete installment:', error);
       toast.error('فشل في حذف القسط');
+    }
+  };
+
+  const handleBulkExtendDueDates = async () => {
+    // التحقق من صحة الشهر والسنة
+    if (isNaN(targetMonth) || targetMonth < 0 || targetMonth > 11) {
+      toast.error('يرجى اختيار شهر صحيح');
+      return;
+    }
+
+    if (isNaN(targetYear) || targetYear < new Date().getFullYear()) {
+      toast.error('يرجى إدخال سنة صحيحة (السنة الحالية أو المستقبلية)');
+      return;
+    }
+
+    const targetInstallments = bulkExtendScope === 'paid'
+      ? installments.filter((installment) => installment.status === 'paid')
+      : bulkExtendScope === 'pending'
+        ? installments.filter((installment) => installment.status === 'pending')
+        : installments;
+
+    if (targetInstallments.length === 0) {
+      toast.error('لا توجد أقساط مطابقة للاختيار');
+      return;
+    }
+
+    // بدء عملية التحميل
+    setIsBulkExtending(true);
+
+    try {
+      // معالجة الأقساط بشكل متزامن ولكن مع تحديث التقدم
+      let processedCount = 0;
+      const totalCount = targetInstallments.length;
+
+      for (const installment of targetInstallments) {
+        // الحصول على التاريخ الحالي للقسط
+        const currentDate = new Date(installment.dueDate);
+
+        // استخراج اليوم من التاريخ الأصلي
+        const day = currentDate.getDate();
+
+        // إنشاء تاريخ جديد بناءً على الشهر والسنة المحددين مع اليوم الأصلي
+        // نستخدم UTC لتجنب مشاكل التوقيت المحلي
+        const newDate = new Date(Date.UTC(targetYear, targetMonth, day));
+
+        // استخدام دالة updateInstallment الموجودة
+        await updateInstallment(installment.id, {
+          clientName: installment.clientName,
+          clientPhone: installment.clientPhone,
+          clientImages: installment.clientImages,
+          installmentAmount: installment.installmentAmount,
+          dueDate: newDate.toISOString(),
+          status: installment.status,
+          firstGuarantorName: installment.firstGuarantorName,
+          firstGuarantorPhone: installment.firstGuarantorPhone,
+          secondGuarantorName: installment.secondGuarantorName,
+          secondGuarantorPhone: installment.secondGuarantorPhone,
+          notes: installment.notes,
+        });
+
+        // تحديث عداد المعالجة
+        processedCount++;
+
+        // عرض تقدم العملية كل 10 أقساط أو عند الانتهاء
+        if (processedCount % 10 === 0 || processedCount === totalCount) {
+          const progress = Math.round((processedCount / totalCount) * 100);
+          toast.loading(`جاري ترحيل الأقساط... ${progress}%`, {
+            id: 'bulk-extend-progress',
+          });
+        }
+      }
+
+      const monthNames = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+      toast.success(`تم ترحيل الاستحقاقات بنجاح إلى ${monthNames[targetMonth]} ${targetYear}`, {
+        id: 'bulk-extend-progress',
+      });
+      setBulkDialogOpen(false);
+    } catch (error) {
+      console.error('Failed to bulk extend due dates:', error);
+      toast.error('فشل في ترحيل الاستحقاقات', {
+        id: 'bulk-extend-progress',
+      });
+    } finally {
+      // إنهاء حالة التحميل
+      setIsBulkExtending(false);
     }
   };
 
@@ -253,287 +342,199 @@ export function InstallmentsPage() {
         </div>
       </div>
 
+      {/* Bulk Extend Dialog */}
+      <Dialog open={bulkDialogOpen} onOpenChange={setBulkDialogOpen}>
+        <DialogContent className="sm:max-w-[500px] text-right" dir="rtl">
+          <DialogHeader className="text-right sm:text-right mt-4">
+            <DialogTitle className="text-right">ترحيل الأقساط</DialogTitle>
+            <DialogDescription className="text-right">
+              اختر الأقساط التي تريد ترحيلها والشهر والسنة للترحيل إليهم.
+            </DialogDescription>
+          </DialogHeader>
 
-
-
-      {/* Table - Desktop View */}
-      <div
-        ref={tableRef}
-        className="hidden sm:block overflow-x-auto rounded-lg border"
-      >
-        <table className="w-full text-sm">
-          <thead className="bg-muted">
-            <tr>
-              <th className="px-4 py-3 text-right font-semibold">الصورة</th>
-              <th className="px-4 py-3 text-right font-semibold">اسم العميل</th>
-              <th className="px-4 py-3 text-right font-semibold">رقم الهاتف</th>
-              <th className="px-4 py-3 text-right font-semibold">قيمة القسط</th>
-              <th className="px-4 py-3 text-right font-semibold">الحالة</th>
-              <th className="px-4 py-3 text-center font-semibold">الإجراءات</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredInstallments.map((installment) => (
-              <tr
-                key={installment.id}
-                className={`border-t hover:bg-muted/50 transition-colors cursor-pointer ${selectedClientId === installment.id ? 'border-2 border-orange-500 dark:border-orange-400' : ''}`}
-                onClick={() => handleClientClick(installment.id)}
-              >
-                <td className="px-4 py-3">
-                  {installment.clientImages.length > 0 ? (
-                    <div className="flex gap-1">
-                      <img
-                        src={installment.clientImages[0]}
-                        alt="صورة العميل"
-                        className="w-10 h-10 object-cover rounded"
-                        title={`${installment.clientImages.length} صورة`}
-                      />
-                      {installment.clientImages.length > 1 && (
-                        <div className="w-10 h-10 bg-muted rounded flex items-center justify-center text-xs font-semibold">
-                          +{installment.clientImages.length - 1}
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <span className="text-muted-foreground">-</span>
-                  )}
-                </td>
-                <td className="px-4 py-3">{installment.clientName || '-'}</td>
-                <td className="px-4 py-3">{installment.clientPhone || '-'}</td>
-                <td className="px-4 py-3">{installment.installmentAmount} ج.م</td>
-                <td className="px-4 py-3">
-                  <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(installment.status)}`}>
-                    {getStatusLabel(installment.status)}
-                  </span>
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex gap-1 justify-center items-center">
-                    {/* زر الواتساب */}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleClientClick(installment.id);
-                        handleWhatsAppClick(installment.clientPhone);
-                      }}
-                      className="gap-1 hover:text-green-700"
-                      title="واتساب"
-                    >
-                      <MessageCircle className="w-4 h-4" />
-                    </Button>
-
-                    {/* زر الملاحظات */}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleClientClick(installment.id);
-                        navigate(`/edit-installment?id=${installment.id}&action=notes`);
-                      }}
-                      className="gap-1"
-                      title="ملاحظات"
-
-                    >
-                      <MessageSquare className="w-4 h-4" />
-                      <span className="hidden sm:inline text-xs">
-                        {installment.notes.length}
-                      </span>
-                    </Button>
-
-                    {/* القائمة المنسدلة */}
-                    <div className="relative">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setActiveDropdown(activeDropdown === installment.id ? null : installment.id);
-                        }}
-                        className="gap-1"
-                        title="الإجراءات"
-                      >
-                        <MoreVertical className="w-4 h-4" />
-                      </Button>
-
-                      {/* خيارات القائمة المنسدلة */}
-                      {activeDropdown === installment.id && (
-                        <div className="absolute left-0 mt-2 w-48 bg-background border rounded-md shadow-lg z-10">
-                          <div className="py-1">
-                            <button
-                              className="block w-full text-right px-4 py-2 text-sm hover:bg-muted"
-                              onClick={() => {
-                                navigate(`/edit-installment?id=${installment.id}&action=view`);
-                                setActiveDropdown(null);
-                              }}
-                            >
-                              <div className="flex items-center gap-2">
-                                <Eye className="w-4 h-4" />
-                                <span>عرض</span>
-                              </div>
-                            </button>
-                            <button
-                              className="block w-full text-right px-4 py-2 text-sm hover:bg-muted"
-                              onClick={() => {
-                                navigate(`/edit-installment?id=${installment.id}&action=edit`);
-                                setActiveDropdown(null);
-                              }}
-                            >
-                              <div className="flex items-center gap-2">
-                                <Edit2 className="w-4 h-4" />
-                                <span>تعديل</span>
-                              </div>
-                            </button>
-                            <button
-                              className="block w-full text-right px-4 py-2 text-sm text-destructive hover:bg-muted"
-                              onClick={() => {
-                                setDeleteConfirm(installment.id);
-                                setActiveDropdown(null);
-                              }}
-                            >
-                              <div className="flex items-center gap-2">
-                                <Trash2 className="w-4 h-4" />
-                                <span>حذف</span>
-                              </div>
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Card View - Mobile */}
-      <div
-        ref={tableRef}
-        className="sm:hidden space-y-3" >
-        {filteredInstallments.map((installment) => (
-          <div
-            key={installment.id}
-            className={`border rounded-lg p-4 bg-card hover:bg-muted/50 transition-colors cursor-pointer ${selectedClientId === installment.id ? 'border-2 border-orange-500 dark:border-orange-400' : ''}`}
-            onClick={() => handleClientClick(installment.id)}
-          >
-            <div className="space-y-3">
-              <div className="flex gap-3 items-start justify-between">
+          <div className="space-y-4 py-4">
+            {/* إدخال الشهر والسنة */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">شهر وسنة الترحيل</label>
+              <div className="flex gap-2">
                 <div className="flex-1">
-                  <p className="font-semibold">{installment.clientName || 'غير محدد'}</p>
-                </div>
-                <span className={`px-2 py-1 rounded text-xs font-semibold ${getStatusColor(installment.status)}`}>
-                  {getStatusLabel(installment.status)}
-                </span>
-              </div>
-              <div className="text-sm space-y-1 border-t pt-2">
-                <p>
-                  <span className="font-medium">رقم الهاتف:</span> {installment.clientPhone}
-                </p>
-                <p>
-                  <span className="font-medium">القسط:</span> {installment.installmentAmount} ج.م
-                </p>
-                <p>
-                  <span className="font-medium">الاستحقاق:</span> {new Date(installment.dueDate).toLocaleDateString('ar-EG')}
-                </p>
-
-              </div>
-              <div className="flex gap-2 pt-2 border-t flex-wrap">
-                {/* زر الواتساب */}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleClientClick(installment.id)
-                    handleWhatsAppClick(installment.clientPhone);
-                  }}
-                  className="flex-1 gap-1 text-xs hover:text-green-700"
-                >
-                  <MessageCircle className="w-3 h-3" />
-                  واتساب
-                </Button>
-
-                {/* زر الملاحظات */}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleClientClick(installment.id)
-                    navigate(`/edit-installment?id=${installment.id}&action=notes`);
-                  }}
-                  className="flex-1 gap-1 text-xs"
-                >
-                  <MessageSquare className="w-3 h-3" />
-                  ({installment.notes.length})
-                </Button>
-
-                {/* القائمة المنسدلة */}
-                <div className="relative">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setActiveDropdown(activeDropdown === installment.id ? null : installment.id);
-                    }}
-                    className="flex-1 gap-1 text-xs"
+                  <label htmlFor="month-input" className="text-xs text-muted-foreground">الشهر</label>
+                  <select
+                    id="month-input"
+                    value={targetMonth}
+                    onChange={(e) => setTargetMonth(parseInt(e.target.value))}
+                    className="w-full p-2 border rounded-md bg-background"
+                    disabled={isBulkExtending}
                   >
-                    <MoreVertical className="w-3 h-3" />
-                    الإجراءات
-                  </Button>
-
-                  {/* خيارات القائمة المنسدلة */}
-                  {activeDropdown === installment.id && (
-                    <div className="absolute left-0 mt-2 w-48 bg-background border rounded-md shadow-lg z-10">
-                      <div className="py-1">
-                        <button
-                          className="block w-full text-right px-4 py-2 text-sm hover:bg-muted"
-                          onClick={() => {
-                            navigate(`/edit-installment?id=${installment.id}&action=view`);
-                            setActiveDropdown(null);
-                          }}
-                        >
-                          <div className="flex items-center gap-2">
-                            <Eye className="w-4 h-4" />
-                            <span>عرض</span>
-                          </div>
-                        </button>
-                        <button
-                          className="block w-full text-right px-4 py-2 text-sm hover:bg-muted"
-                          onClick={() => {
-                            navigate(`/edit-installment?id=${installment.id}&action=edit`);
-                            setActiveDropdown(null);
-                          }}
-                        >
-                          <div className="flex items-center gap-2">
-                            <Edit2 className="w-4 h-4" />
-                            <span>تعديل</span>
-                          </div>
-                        </button>
-                        <button
-                          className="block w-full text-right px-4 py-2 text-sm text-destructive hover:bg-muted"
-                          onClick={() => {
-                            setDeleteConfirm(installment.id);
-                            setActiveDropdown(null);
-                          }}
-                        >
-                          <div className="flex items-center gap-2">
-                            <Trash2 className="w-4 h-4" />
-                            <span>حذف</span>
-                          </div>
-                        </button>
-                      </div>
-                    </div>
-                  )}
+                    <option value="0">يناير</option>
+                    <option value="1">فبراير</option>
+                    <option value="2">مارس</option>
+                    <option value="3">أبريل</option>
+                    <option value="4">مايو</option>
+                    <option value="5">يونيو</option>
+                    <option value="6">يوليو</option>
+                    <option value="7">أغسطس</option>
+                    <option value="8">سبتمبر</option>
+                    <option value="9">أكتوبر</option>
+                    <option value="10">نوفمبر</option>
+                    <option value="11">ديسمبر</option>
+                  </select>
+                </div>
+                <div className="flex-1">
+                  <label htmlFor="year-input" className="text-xs text-muted-foreground">السنة</label>
+                  <Input
+                    id="year-input"
+                    type="number"
+                    min={new Date().getFullYear()}
+                    value={targetYear}
+                    onChange={(e) => setTargetYear(parseInt(e.target.value))}
+                    className="w-full"
+                    disabled={isBulkExtending}
+                  />
                 </div>
               </div>
             </div>
+
+            {/* خيارات نطاق الترحيل */}
+            <div className="space-y-3">
+              <label className="text-sm font-medium">نطاق الترحيل</label>
+
+              <label className="flex cursor-pointer items-start gap-3 rounded-lg border p-4 hover:bg-muted">
+                <input
+                  type="radio"
+                  name="bulk-extend-scope"
+                  value="paid"
+                  checked={bulkExtendScope === 'paid'}
+                  onChange={() => setBulkExtendScope('paid')}
+                  className="mt-1 h-4 w-4"
+                  disabled={isBulkExtending}
+                />
+                <div>
+                  <p className="font-medium">الأقساط المدفوعة فقط</p>
+                  <p className="text-sm text-muted-foreground">سيتم ترحيل تاريخ الاستحقاق للأقساط التي تم دفعها فقط.</p>
+                </div>
+              </label>
+
+              <label className="flex cursor-pointer items-start gap-3 rounded-lg border p-4 hover:bg-muted">
+                <input
+                  type="radio"
+                  name="bulk-extend-scope"
+                  value="pending"
+                  checked={bulkExtendScope === 'pending'}
+                  onChange={() => setBulkExtendScope('pending')}
+                  className="mt-1 h-4 w-4"
+                  disabled={isBulkExtending}
+                />
+                <div>
+                  <p className="font-medium">الأقساط غير المدفوعة فقط</p>
+                  <p className="text-sm text-muted-foreground">سيتم ترحيل تاريخ الاستحقاق للأقساط غير المدفوعة فقط.</p>
+                </div>
+              </label>
+
+              <label className="flex cursor-pointer items-start gap-3 rounded-lg border p-4 hover:bg-muted">
+                <input
+                  type="radio"
+                  name="bulk-extend-scope"
+                  value="all"
+                  checked={bulkExtendScope === 'all'}
+                  onChange={() => setBulkExtendScope('all')}
+                  className="mt-1 h-4 w-4"
+                  disabled={isBulkExtending}
+                />
+                <div>
+                  <p className="font-medium">جميع الأقساط</p>
+                  <p className="text-sm text-muted-foreground">سيتم ترحيل تاريخ الاستحقاق لجميع الأقساط في الجدول.</p>
+                </div>
+              </label>
+            </div>
           </div>
-        ))}
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setBulkDialogOpen(false)}
+              disabled={isBulkExtending}
+            >
+              إلغاء
+            </Button>
+            <Button
+              onClick={handleBulkExtendDueDates}
+              disabled={isBulkExtending}
+            >
+              {isBulkExtending ? 'جاري الترحيل...' : 'ترحيل'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Responsive Table/Card View */}
+      <div
+        ref={tableRef}
+        className="overflow-x-auto rounded-lg border"
+      >
+        {/* Desktop Table View */}
+        <div className="hidden sm:block">
+          <table className="w-full text-sm">
+            <thead className="bg-muted">
+              <tr>
+                <th className="px-4 py-3 text-right font-semibold">الصورة</th>
+                <th className="px-4 py-3 text-right font-semibold">اسم العميل</th>
+                <th className="px-4 py-3 text-right font-semibold">رقم الهاتف</th>
+                <th className="px-4 py-3 text-right font-semibold">قيمة القسط</th>
+                <th className="px-4 py-3 text-right font-semibold">الحالة</th>
+                <th className="px-4 py-3 text-center font-semibold">الإجراءات</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredInstallments.map((installment) => (
+                <InstallmentRow
+                  key={installment.id}
+                  installment={installment}
+                  isSelected={selectedClientId === installment.id}
+                  isMobile={false}
+                  onClientClick={handleClientClick}
+                  onWhatsAppClick={handleWhatsAppClick}
+                  onActionClick={(action) => {
+                    if (action === 'view') navigate(`/edit-installment?id=${installment.id}&action=view`);
+                    if (action === 'edit') navigate(`/edit-installment?id=${installment.id}&action=edit`);
+                    if (action === 'delete') setDeleteConfirm(installment.id);
+                    if (action === 'notes') navigate(`/edit-installment?id=${installment.id}&action=notes`);
+                    setActiveDropdown(null);
+                  }}
+                  activeDropdown={activeDropdown}
+                  setActiveDropdown={setActiveDropdown}
+                  getStatusColor={getStatusColor}
+                  getStatusLabel={getStatusLabel}
+                />
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Mobile Card View */}
+        <div className="sm:hidden space-y-3">
+          {filteredInstallments.map((installment) => (
+            <InstallmentRow
+              key={installment.id}
+              installment={installment}
+              isSelected={selectedClientId === installment.id}
+              isMobile={true}
+              onClientClick={handleClientClick}
+              onWhatsAppClick={handleWhatsAppClick}
+              onActionClick={(action) => {
+                if (action === 'view') navigate(`/edit-installment?id=${installment.id}&action=view`);
+                if (action === 'edit') navigate(`/edit-installment?id=${installment.id}&action=edit`);
+                if (action === 'delete') setDeleteConfirm(installment.id);
+                if (action === 'notes') navigate(`/edit-installment?id=${installment.id}&action=notes`);
+                setActiveDropdown(null);
+              }}
+              activeDropdown={activeDropdown}
+              setActiveDropdown={setActiveDropdown}
+              getStatusColor={getStatusColor}
+              getStatusLabel={getStatusLabel}
+            />
+          ))}
+        </div>
       </div>
 
       {/* Empty State */}
@@ -551,10 +552,9 @@ export function InstallmentsPage() {
         </div>
       )}
 
-
-
       {/* Total Amount Display */}
       <div className="mb-6 relative">
+
         <div
           className={`bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg transition-all duration-500 ease-in-out overflow-hidden
             ${showTotalAmount
@@ -568,7 +568,7 @@ export function InstallmentsPage() {
               {totalAmount.toLocaleString()} ج.م
             </span>
           </div>
-          <div className="grid grid-cols-2 gap-4 mt-4">
+          <div className="grid grid-cols-2 gap-4 mt-4 mb-6">
             <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg">
               <span className="text-sm text-green-700 dark:text-green-300">الأقساط المدفوعة:</span>
               <div className="text-lg font-bold text-green-700 dark:text-green-300">
@@ -582,6 +582,21 @@ export function InstallmentsPage() {
               </div>
             </div>
           </div>
+
+          <div className="flex items-end my-auto">
+            <Button
+              onClick={() => setBulkDialogOpen(true)}
+              className="w-full"
+              variant="outline"
+            >
+              ترحيل الأقساط
+            </Button>
+          </div>
+          {/* Import/Export Buttons Component */}
+          <ImportExportButtons
+            onImport={handleFileChange}
+            onExport={exportInstallments}
+          />
         </div>
 
         {/* Button to toggle total amount display - only visible after authentication */}
@@ -604,40 +619,9 @@ export function InstallmentsPage() {
               variant="outline"
             >
               <ChevronDown className="w-4 h-4" />
-
             </Button>
           </div>
         )}
-      </div>
-
-
-      {/* Import/Export Buttons */}
-      <div className="flex gap-3 justify-end py-6 border-t mt-8 pt-6">
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".json"
-          onChange={handleFileChange}
-          className="hidden"
-        />
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleImportClick}
-          className="gap-2"
-        >
-          <Upload className="w-4 h-4" />
-          استيراد بيانات
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => exportInstallments()}
-          className="gap-2"
-        >
-          <Download className="w-4 h-4" />
-          تصدير بيانات
-        </Button>
       </div>
 
       {/* Delete Confirmation Dialog */}
@@ -648,16 +632,16 @@ export function InstallmentsPage() {
             <p className="text-muted-foreground mb-6">
               هل أنت متأكد من رغبتك في حذف هذا القسط؟ لا يمكن التراجع عن هذا الإجراء.
             </p>
-            <div className="flex gap-20 justify-center ">
+            <div className="flex gap-20 justify-center">
               <Button
-                className="right-0 "
+                className="right-0"
                 variant="outline"
                 onClick={() => setDeleteConfirm(null)}
               >
                 إلغاء
               </Button>
               <Button
-                className="left-0 "
+                className="left-0"
                 variant="destructive"
                 onClick={() => handleDelete(deleteConfirm)}
               >
@@ -714,3 +698,58 @@ export function InstallmentsPage() {
     </div>
   );
 }
+
+
+interface ImportExportButtonsProps {
+  onImport: (event: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
+  onExport: () => void;
+}
+
+const ImportExportButtons: React.FC<ImportExportButtonsProps> = ({
+  onImport,
+  onExport,
+}) => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    await onImport(event);
+    // Reset the file input after import
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  return (
+    <div className="flex gap-3 justify-end py-6 border-t mt-8 pt-6">
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".json"
+        onChange={handleFileChange}
+        className="hidden"
+      />
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={handleImportClick}
+        className="gap-2"
+      >
+        <Upload className="w-4 h-4" />
+        استيراد بيانات
+      </Button>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={onExport}
+        className="gap-2"
+      >
+        <Download className="w-4 h-4" />
+        تصدير بيانات
+      </Button>
+    </div>
+  );
+};
