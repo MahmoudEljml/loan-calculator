@@ -201,7 +201,7 @@ const ProfessionalLoanCalculator = () => {
                     </div>
                 )}
             </div>
-                <a href="tel:+201000000000">اتصل بنا الآن</a>
+            {/* <a href="tel:+201000000000">اتصل بنا الآن</a> */}
         </div>
     );
 };
