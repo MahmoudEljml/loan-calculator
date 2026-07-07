@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react';
+import type { CSSProperties, UIEvent } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { AppSidebar } from '@/components/app-sidebar.tsx';
@@ -19,85 +19,96 @@ import './App.css';
 import ShareDialog from '@/components/Dialog.tsx';
 import { Toaster } from '@/components/ui/sonner.tsx';
 import { MapPage } from './pages/MapPage.tsx';
-// import { Button } from './components/ui/button.tsx';
 
-const STORAGE_KEY = 'loan-calculator-last-page'
+const STORAGE_KEY = 'loan-calculator-last-page';
 
-type AppRoute = (typeof paths)[keyof typeof paths]
-const validPaths = Object.values(paths) as AppRoute[]
+type AppRoute = (typeof paths)[keyof typeof paths];
+const validPaths = Object.values(paths) as AppRoute[];
 
 function isAppRoute(value: string | null): value is AppRoute {
-  return value !== null && validPaths.includes(value as AppRoute)
+  return value !== null && validPaths.includes(value as AppRoute);
 }
 
 function App() {
-  const location = useLocation()
-  const navigate = useNavigate()
-  const isInitialized = useRef(false)
+  const location = useLocation();
+  const navigate = useNavigate();
+  const isInitialized = useRef(false);
+
   const [scrollInstallments, setScrollInstallments] = useState(0);
   const [scrollIScoreCodes, setScrollIScoreCodes] = useState(0);
   const [scrollCustomers, setScrollCustomers] = useState(0);
 
-  // --- جديد: مرجع لعنصر التمرير ---
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  // استعادة الصفحة المحفوظة عند أول تحميل فقط
+  // Ref to hold the timeout ID for debouncing the scroll event
+  const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Initialize app: restore page and perform one-time cleanup
   useEffect(() => {
     if (!isInitialized.current) {
-      isInitialized.current = true
-      const savedPage = window.localStorage.getItem(STORAGE_KEY)
+      isInitialized.current = true;
+
+      // 1. One-time localStorage cleanup
+      const localStorageReset = "loan_cleanup_localstorage_v1";
+      if (!localStorage.getItem(localStorageReset)) {
+        localStorage.removeItem('loanShareOptions');
+        localStorage.setItem(localStorageReset, 'true');
+      }
+
+      // 2. Restore the saved page
+      const savedPage = window.localStorage.getItem(STORAGE_KEY);
       if (isAppRoute(savedPage) && savedPage !== location.pathname) {
-        navigate(savedPage, { replace: true })
+        navigate(savedPage, { replace: true });
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, []);
 
-  // حفظ الصفحة الحالية في localStorage عند كل تغيير
+  // Save current page and restore scroll position when route changes
   useEffect(() => {
     if (isAppRoute(location.pathname)) {
-      window.localStorage.setItem(STORAGE_KEY, location.pathname)
+      window.localStorage.setItem(STORAGE_KEY, location.pathname);
     }
 
     if (location.pathname === paths.installments) {
-      setTimeOutFunction(scrollInstallments)
+      setTimeOutFunction(scrollInstallments);
     } else if (location.pathname === paths.iscoreCodes) {
-      setTimeOutFunction(scrollIScoreCodes)
+      setTimeOutFunction(scrollIScoreCodes);
     } else if (location.pathname === paths.customers) {
-      setTimeOutFunction(scrollCustomers)
+      setTimeOutFunction(scrollCustomers);
     } else {
       scrollContainerRef?.current?.scrollTo(0, 0);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.pathname])
+  }, [location.pathname]);
 
   const setTimeOutFunction = (value: number) => {
     setTimeout(() => {
       scrollContainerRef?.current?.scrollTo(0, value);
-      console.log(value);
-    }, 700);
-  }
+    }, 700); // Consider reducing this delay if the transition feels slow
+  };
 
-  const scrollContainer = document.getElementById("scroll-container");
-  if (scrollContainer) {
-    
-    scrollContainer.onscroll = () => {
+  // Handle scroll events with Debounce to prevent performance issues
+  const handleScroll = (e: UIEvent<HTMLDivElement>) => {
+    const scrollTop = e.currentTarget.scrollTop;
 
-      setTimeout(() => {
-        if (location.pathname === paths.installments) {
-          setScrollInstallments(scrollContainer.scrollTop);
-        } else if (location.pathname === paths.iscoreCodes) {
-          setScrollIScoreCodes(scrollContainer.scrollTop);
-        } else if (location.pathname === paths.customers) {
-          setScrollCustomers(scrollContainer.scrollTop);
-        // } else {
-        //   setScrollInstallments(0);
-        }
-
-      }, 200);
+    // Clear the previous timeout if user is still scrolling
+    if (scrollTimeoutRef.current) {
+      clearTimeout(scrollTimeoutRef.current);
     }
 
-  }
+    // Set a new timeout
+    scrollTimeoutRef.current = setTimeout(() => {
+      if (location.pathname === paths.installments) {
+        setScrollInstallments(scrollTop);
+      } else if (location.pathname === paths.iscoreCodes) {
+        setScrollIScoreCodes(scrollTop);
+      } else if (location.pathname === paths.customers) {
+        setScrollCustomers(scrollTop);
+      }
+    }, 200);
+  };
+
   return (
     <SidebarProvider
       style={
@@ -125,11 +136,11 @@ function App() {
             </div>
           </header>
 
-
-          {/* --- تم التعديل هنا: إضافة ref للعنصر الذي يحتوي على overflow-y-auto --- */}
           <div
-            ref={scrollContainerRef} id="scroll-container"
+            ref={scrollContainerRef}
+            id="scroll-container"
             className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain"
+            onScroll={handleScroll} // Use React's built-in onScroll event
           >
             <div className="space-y-4 p-3 text-start sm:p-4">
               <Routes>
@@ -147,8 +158,6 @@ function App() {
               <PWABadge />
             </div>
           </div>
-
-
         </SidebarInset>
       </TooltipProvider>
 
@@ -159,13 +168,6 @@ function App() {
         expand={false}
         duration={3000}
       />
-      {/* <Button onClick={() => {
-        fetch('https://jsonplaceholder.typicode.com/users')
-          .then(response => response.json())
-          .then(json => console.log(json))
-      }} >
-        Test
-      </Button> */}
     </SidebarProvider>
   );
 }

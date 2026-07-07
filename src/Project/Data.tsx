@@ -22,8 +22,6 @@ export const loanData = [
 //     { product: "الفردي", min: 155000, max: 292000, interest: 27, fees: 4.0, maxMonths: 36 },
 // ];
 
-
-
 // export const loanData = [
 //     { product: "الفردي", min: 5000, max: 30000, interest: 25, fees: 3.5, maxMonths: 18 },
 //     { product: "الفردي", min: 35000, max: 50000, interest: 25, fees: 3.75, maxMonths: 20 },

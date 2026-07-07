@@ -37,22 +37,6 @@ export default defineConfig({
         cacheId: `loan-calculator-${pkg.version}`,
         // تفعيل تتبع التحليلات في وضع الأوفلاين
         offlineGoogleAnalytics: true,
-        // runtimeCaching: [
-        //   {
-        //     // هذا التعبير المنتظم (RegEx) يلقط أي رابط يبدأ بـ localhost أو ينتهي بـ vercel.app
-        //     urlPattern: /^https?:\/\/(localhost|.*\.vercel\.app)\//,
-        //     handler: "NetworkFirst",
-        //     options: {
-        //       cacheName: "site-cache",
-        //       networkTimeoutSeconds: 5, // سيعطي السيرفر 5 ثوانٍ فقط، إذا فشل يعود للكاش
-        //       expiration: {
-        //         maxEntries: 10,
-        //         // قلل هذه المدة إلى 24 ساعة بدلاً من سنة أثناء التطوير
-        //         maxAgeSeconds: 5,
-        //       },
-        //     },
-        //   },
-        // ],
       },
 
       devOptions: {

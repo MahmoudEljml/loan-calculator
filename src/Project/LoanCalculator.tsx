@@ -161,14 +161,13 @@ const ProfessionalLoanCalculator = () => {
     return (
         <div className="min-h-screen flex items-center justify-center font-sans bg-background text-foreground" dir="rtl">
             {/* <div className="bg-white p-6 rounded-2xl shadow-lg w-full max-w-md mx-4"> */}
-            <div className="w-full max-w-xl relative bg-card rounded-2xl shadow-lg border border-border p-6">
+            <div className="w-full max-w-xl relative bg-card rounded-2xl shadow-lg border border-border p-6 ">
                 {/* <CurrentChipInformation currentTier={currentTier} /> */}
 
                 {/* <MapComponent
                     markers={[
                     ]}
                 /> */}
-
 
 
                 <PartCalculate
