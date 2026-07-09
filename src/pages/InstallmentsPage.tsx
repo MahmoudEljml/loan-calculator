@@ -8,7 +8,7 @@ import useLocalStorage from '../hooks/useLocalStorage';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Plus, Search, Download, Upload, ChevronDown, Lock } from 'lucide-react';
 import { toast } from 'sonner';
-import { InstallmentRow } from '@/components/InstallmentRow';
+import { InstallmentsTable } from '@/components/InstallmentsTable';
 
 export function InstallmentsPage() {
   const navigate = useNavigate();
@@ -468,73 +468,23 @@ export function InstallmentsPage() {
       </Dialog>
 
       {/* Responsive Table/Card View */}
-      <div
-        ref={tableRef}
-        className="overflow-x-auto rounded-lg border"
-      >
-        {/* Desktop Table View */}
-        <div className="hidden sm:block">
-          <table className="w-full text-sm">
-            <thead className="bg-muted">
-              <tr>
-                <th className="px-4 py-3 text-right font-semibold">الصورة</th>
-                <th className="px-4 py-3 text-right font-semibold">اسم العميل</th>
-                <th className="px-4 py-3 text-right font-semibold">رقم الهاتف</th>
-                <th className="px-4 py-3 text-right font-semibold">قيمة القسط</th>
-                <th className="px-4 py-3 text-right font-semibold">الحالة</th>
-                <th className="px-4 py-3 text-center font-semibold">الإجراءات</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredInstallments.map((installment) => (
-                <InstallmentRow
-                  key={installment.id}
-                  installment={installment}
-                  isSelected={selectedClientId === installment.id}
-                  isMobile={false}
-                  onClientClick={handleClientClick}
-                  onWhatsAppClick={handleWhatsAppClick}
-                  onActionClick={(action) => {
-                    if (action === 'view') navigate(`/edit-installment?id=${installment.id}&action=view`);
-                    if (action === 'edit') navigate(`/edit-installment?id=${installment.id}&action=edit`);
-                    if (action === 'delete') setDeleteConfirm(installment.id);
-                    if (action === 'notes') navigate(`/edit-installment?id=${installment.id}&action=notes`);
-                    setActiveDropdown(null);
-                  }}
-                  activeDropdown={activeDropdown}
-                  setActiveDropdown={setActiveDropdown}
-                  getStatusColor={getStatusColor}
-                  getStatusLabel={getStatusLabel}
-                />
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Mobile Card View */}
-        <div className="sm:hidden space-y-3">
-          {filteredInstallments.map((installment) => (
-            <InstallmentRow
-              key={installment.id}
-              installment={installment}
-              isSelected={selectedClientId === installment.id}
-              isMobile={true}
-              onClientClick={handleClientClick}
-              onWhatsAppClick={handleWhatsAppClick}
-              onActionClick={(action) => {
-                if (action === 'view') navigate(`/edit-installment?id=${installment.id}&action=view`);
-                if (action === 'edit') navigate(`/edit-installment?id=${installment.id}&action=edit`);
-                if (action === 'delete') setDeleteConfirm(installment.id);
-                if (action === 'notes') navigate(`/edit-installment?id=${installment.id}&action=notes`);
-                setActiveDropdown(null);
-              }}
-              activeDropdown={activeDropdown}
-              setActiveDropdown={setActiveDropdown}
-              getStatusColor={getStatusColor}
-              getStatusLabel={getStatusLabel}
-            />
-          ))}
-        </div>
+      <div ref={tableRef}>
+        <InstallmentsTable
+          installments={filteredInstallments}
+          selectedClientId={selectedClientId}
+          onClientClick={handleClientClick}
+          onWhatsAppClick={handleWhatsAppClick}
+          onActionClick={(id, action) => {
+            if (action === 'view') navigate(`/edit-installment?id=${id}&action=view`);
+            if (action === 'edit') navigate(`/edit-installment?id=${id}&action=edit`);
+            if (action === 'delete') setDeleteConfirm(id);
+            if (action === 'notes') navigate(`/edit-installment?id=${id}&action=notes`);
+          }}
+          activeDropdown={activeDropdown}
+          setActiveDropdown={setActiveDropdown}
+          getStatusColor={getStatusColor}
+          getStatusLabel={getStatusLabel}
+        />
       </div>
 
       {/* Empty State */}
