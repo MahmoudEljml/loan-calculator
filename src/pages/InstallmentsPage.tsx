@@ -16,7 +16,7 @@ export function InstallmentsPage() {
   const { exportInstallments, importInstallments } = useExportImportInstallments();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const tableRef = useRef<HTMLDivElement>(null);
-  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  // const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
 
   // استخدام useLocalStorage hook لحفظ الفلاتر
   const [filters, setFilters] = useLocalStorage('loan_calculator_filters', {
@@ -480,8 +480,6 @@ export function InstallmentsPage() {
             if (action === 'delete') setDeleteConfirm(id);
             if (action === 'notes') navigate(`/edit-installment?id=${id}&action=notes`);
           }}
-          activeDropdown={activeDropdown}
-          setActiveDropdown={setActiveDropdown}
           getStatusColor={getStatusColor}
           getStatusLabel={getStatusLabel}
         />
