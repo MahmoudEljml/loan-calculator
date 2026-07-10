@@ -3,9 +3,10 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useInstallmentsStorage } from '../hooks/useInstallmentsStorage';
-import { ArrowRight, Trash2, Plus, MessageSquare, X, Image as ImageIcon } from 'lucide-react';
+import { ArrowRight, MessageSquare, X, Image as ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { ImageViewer } from '@/components/ImageViewer';
+import { InstallmentNotesSheet } from '@/components/InstallmentNotesSheet';
 
 export function EditInstallmentPage() {
   const navigate = useNavigate();
@@ -15,7 +16,6 @@ export function EditInstallmentPage() {
   const installmentId = searchParams.get('id');
   const action = searchParams.get('action') || 'view';
   const isView = action === 'view';
-  const isNotes = action === 'notes';
 
   const existingInstallment = installmentId ? getInstallment(installmentId) : null;
 
@@ -33,8 +33,7 @@ export function EditInstallmentPage() {
 
   // Notes state
   const [notes, setNotes] = useState(existingInstallment?.notes || []);
-  const [newNote, setNewNote] = useState('');
-  const [showNoteForm, setShowNoteForm] = useState(false);
+  const [showNotesSheet, setShowNotesSheet] = useState(false);
 
   // Image viewer state
   const [viewerOpen, setViewerOpen] = useState(false);
@@ -109,129 +108,49 @@ export function EditInstallmentPage() {
     }
   };
 
-  const handleAddNote = async () => {
-    if (!newNote.trim()) {
-      toast.error('يرجى كتابة الملاحظة');
+  const handleAddNote = async (noteText: string) => {
+    if (!installmentId) {
+      toast.error('معرف القسط غير صحيح');
       return;
     }
 
-    if (installmentId) {
-      try {
-        await addNote(installmentId, newNote);
-        const now = new Date().toISOString();
-        setNotes([
-          ...notes,
-          {
-            id: Date.now().toString(),
-            note: newNote,
-            createdAt: now,
-            updatedAt: now,
-          },
-        ]);
-        setNewNote('');
-        setShowNoteForm(false);
-        toast.success('تمت إضافة الملاحظة بنجاح');
-      } catch (error) {
-        toast.error('فشل في إضافة الملاحظة');
-        console.error(error);
-      }
+    try {
+      await addNote(installmentId, noteText);
+      const now = new Date().toISOString();
+      setNotes([
+        ...notes,
+        {
+          id: Date.now().toString(),
+          note: noteText,
+          createdAt: now,
+          updatedAt: now,
+        },
+      ]);
+    } catch (error) {
+      toast.error('فشل في إضافة الملاحظة');
+      console.error(error);
+      throw error;
     }
   };
 
   const handleDeleteNote = async (noteId: string) => {
-    if (installmentId) {
-      try {
-        await deleteNote(installmentId, noteId);
-        setNotes(notes.filter(n => n.id !== noteId));
-        toast.success('تم حذف الملاحظة بنجاح');
-      } catch (error) {
-        toast.error('فشل في حذف الملاحظة');
-        console.error(error);
-      }
+    if (!installmentId) {
+      toast.error('معرف القسط غير صحيح');
+      return;
+    }
+
+    try {
+      await deleteNote(installmentId, noteId);
+      setNotes(notes.filter(n => n.id !== noteId));
+    } catch (error) {
+      toast.error('فشل في حذف الملاحظة');
+      console.error(error);
+      throw error;
     }
   };
 
-  // Notes View
-  if (isNotes && installmentId) {
-    return (
-      <div className="space-y-4 text-start" dir="rtl">
-        <div className="flex items-center gap-4 mb-6">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate('/installments')}
-            className="gap-2"
-          >
-            <ArrowRight className="w-4 h-4" />
-            رجوع
-          </Button>
-          <h1 className="text-2xl font-semibold">الملاحظات - {clientName}</h1>
-        </div>
-
-        {/* Notes List */}
-        <div className="space-y-3 mb-6">
-          {notes.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              لا توجد ملاحظات حالياً
-            </div>
-          ) : (
-            notes.map((note) => (
-              <div key={note.id} className="border border-gray-300 dark:border-gray-600 rounded-lg p-4 bg-white dark:bg-gray-800">
-                <div className="flex justify-between items-start mb-2">
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    {new Date(note.createdAt).toLocaleDateString('ar-EG', {
-                      weekday: 'long',
-                      year: 'numeric',
-                      month: 'numeric',
-                      day: 'numeric'
-                    })} - {' '}
-                    {new Date(note.createdAt).toLocaleTimeString('ar-EG', {
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}
-                  </p>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleDeleteNote(note.id)}
-                    className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-                <p className="break-words text-gray-900 dark:text-gray-100">{note.note}</p>
-              </div>
-            ))
-          )}
-        </div>
-
-        {/* Add Note Form */}
-        {!showNoteForm ? (
-          <Button onClick={() => setShowNoteForm(true)} className="w-full gap-2">
-            <Plus className="w-4 h-4" />
-            إضافة ملاحظة جديدة
-          </Button>
-        ) : (
-          <div className="border border-gray-300 dark:border-gray-600 rounded-lg p-4 bg-white dark:bg-gray-800 space-y-3">
-            <textarea
-              value={newNote}
-              onChange={(e) => setNewNote(e.target.value)}
-              placeholder="اكتب الملاحظة هنا..."
-              className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-primary-dark bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 min-h-24 placeholder-gray-500 dark:placeholder-gray-400"
-            />
-            <div className="flex gap-2">
-              <Button onClick={handleAddNote} className="flex-1">
-                حفظ
-              </Button>
-              <Button variant="outline" onClick={() => setShowNoteForm(false)} className="flex-1">
-                إلغاء
-              </Button>
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  }
+  // Notes View - استبدالها بـ Sheet
+  // تم حذف isNotes logic وسيتم استخدام Sheet بدلاً منه
 
   // Edit/Add/View Form
   return (
@@ -361,7 +280,7 @@ export function EditInstallmentPage() {
       {installmentId && !isView && (
         <div className="flex gap-2">
           <Button
-            onClick={() => navigate(`/edit-installment?id=${installmentId}&action=notes`)}
+            onClick={() => setShowNotesSheet(true)}
             variant="outline"
             className="gap-2"
           >
@@ -454,6 +373,17 @@ export function EditInstallmentPage() {
           onClose={() => setViewerOpen(false)}
         />
       )}
+
+      {/* Notes Sheet */}
+      <InstallmentNotesSheet
+        open={showNotesSheet}
+        onOpenChange={setShowNotesSheet}
+        installmentId={installmentId}
+        clientName={clientName}
+        notes={notes}
+        onAddNote={handleAddNote}
+        onDeleteNote={handleDeleteNote}
+      />
 
       {/* Action Buttons */}
       <div className="flex gap-2">

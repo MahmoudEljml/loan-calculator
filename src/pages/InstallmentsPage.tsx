@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Plus, Search, Download, Upload, ChevronDown, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import { InstallmentsTable } from '@/components/InstallmentsTable';
+import { InstallmentNotesSheet } from '@/components/InstallmentNotesSheet';
 
 export function InstallmentsPage() {
   const navigate = useNavigate();
@@ -53,6 +54,10 @@ export function InstallmentsPage() {
   const [targetYear, setTargetYear] = useState<number>(new Date().getFullYear());
   const [isBulkExtending, setIsBulkExtending] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  
+  // Notes Sheet state
+  const [notesSheetOpen, setNotesSheetOpen] = useState(false);
+  const [selectedNotesInstallmentId, setSelectedNotesInstallmentId] = useState<string | null>(null);
   // حفظ الفلاتر عند تغييرها
   useEffect(() => {
     const newFilters = {
@@ -478,7 +483,10 @@ export function InstallmentsPage() {
             if (action === 'view') navigate(`/edit-installment?id=${id}&action=view`);
             if (action === 'edit') navigate(`/edit-installment?id=${id}&action=edit`);
             if (action === 'delete') setDeleteId(id);
-            if (action === 'notes') navigate(`/edit-installment?id=${id}&action=notes`);
+            if (action === 'notes') {
+              setSelectedNotesInstallmentId(id);
+              setNotesSheetOpen(true);
+            }
           }}
           getStatusColor={getStatusColor}
           getStatusLabel={getStatusLabel}
@@ -649,6 +657,47 @@ export function InstallmentsPage() {
           </div>
         </div>
       )}
+
+     {/* Notes Sheet */}
+     {selectedNotesInstallmentId && (
+       <InstallmentNotesSheet
+         open={notesSheetOpen}
+         onOpenChange={setNotesSheetOpen}
+         installmentId={selectedNotesInstallmentId}
+         clientName={
+           installments.find(i => i.id === selectedNotesInstallmentId)?.clientName || ''
+         }
+         notes={
+           installments.find(i => i.id === selectedNotesInstallmentId)?.notes || []
+         }
+         onAddNote={async (noteText) => {
+           const installment = installments.find(i => i.id === selectedNotesInstallmentId);
+           if (installment) {
+             await updateInstallment(selectedNotesInstallmentId, {
+               ...installment,
+               notes: [
+                 ...installment.notes,
+                 {
+                   id: Date.now().toString(),
+                   note: noteText,
+                   createdAt: new Date().toISOString(),
+                   updatedAt: new Date().toISOString(),
+                 },
+               ],
+             });
+           }
+         }}
+         onDeleteNote={async (noteId) => {
+           const installment = installments.find(i => i.id === selectedNotesInstallmentId);
+           if (installment) {
+             await updateInstallment(selectedNotesInstallmentId, {
+               ...installment,
+               notes: installment.notes.filter(n => n.id !== noteId),
+             });
+           }
+         }}
+       />
+     )}
     </div>
   );
 }
