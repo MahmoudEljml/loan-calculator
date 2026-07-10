@@ -11,7 +11,7 @@ import { InstallmentNotesSheet } from '@/components/InstallmentNotesSheet';
 export function EditInstallmentPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { getInstallment, addInstallment, updateInstallment, addNote, deleteNote } = useInstallmentsStorage();
+  const { getInstallment, addInstallment, updateInstallment, addNote, updateNote, deleteNote } = useInstallmentsStorage();
 
   const installmentId = searchParams.get('id');
   const action = searchParams.get('action') || 'view';
@@ -144,6 +144,28 @@ export function EditInstallmentPage() {
       setNotes(notes.filter(n => n.id !== noteId));
     } catch (error) {
       toast.error('فشل في حذف الملاحظة');
+      console.error(error);
+      throw error;
+    }
+  };
+
+  const handleUpdateNote = async (noteId: string, noteText: string) => {
+    if (!installmentId) {
+      toast.error('معرف القسط غير صحيح');
+      return;
+    }
+
+    try {
+      await updateNote(installmentId, noteId, noteText);
+      const now = new Date().toISOString();
+      const updatedNotes = notes.map(n =>
+        n.id === noteId
+          ? { ...n, note: noteText, updatedAt: now }
+          : n
+      );
+      setNotes(updatedNotes);
+    } catch (error) {
+      toast.error('فشل في تحديث الملاحظة');
       console.error(error);
       throw error;
     }
@@ -382,6 +404,7 @@ export function EditInstallmentPage() {
         clientName={clientName}
         notes={notes}
         onAddNote={handleAddNote}
+        onUpdateNote={handleUpdateNote}
         onDeleteNote={handleDeleteNote}
       />
 
