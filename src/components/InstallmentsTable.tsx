@@ -27,7 +27,7 @@ export const InstallmentsTable: React.FC<InstallmentsTableProps> = ({
 }) => {
 
     return (
-        <div className="overflow-x-auto rounded-xl border bg-card shadow-sm">
+        <div>
             {/* Desktop Table View */}
             <div className="hidden sm:block">
                 <table className="w-full text-sm">
@@ -242,7 +242,7 @@ export const InstallmentsTable: React.FC<InstallmentsTableProps> = ({
                                     </DialogTrigger>
                                     <DialogContent className="sm:max-w-[400px] w-[92%] rounded-2xl py-10" dir="rtl">
                                         <DialogHeader>
-                                            <DialogTitle className="text-right text-lg">إجراءات القسط</DialogTitle>
+                                            <DialogTitle className="text-right text-lg">{installment.clientName}</DialogTitle>
                                         </DialogHeader>
                                         <div className="flex flex-col gap-2.5 py-2">
                                             {/* زر الواتساب */}
@@ -294,7 +294,7 @@ export const InstallmentsTable: React.FC<InstallmentsTableProps> = ({
 
                                             <DialogClose asChild>
                                                 <Button
-                                                    variant="ghost"
+                                                    variant="destructive"
                                                     className="justify-start gap-3 h-12 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
                                                     onClick={() => onActionClick(installment.id, 'delete')}
                                                 >

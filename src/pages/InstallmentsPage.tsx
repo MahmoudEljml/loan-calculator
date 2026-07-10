@@ -47,12 +47,12 @@ export function InstallmentsPage() {
   const [searchTerm, setSearchTerm] = useState(filters.searchTerm);
   const [dateFilter, setDateFilter] = useState(filters.dateFilter);
   const [statusFilter, setStatusFilter] = useState(filters.statusFilter);
-  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  // const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
   const [targetMonth, setTargetMonth] = useState<number>(new Date().getMonth());
   const [targetYear, setTargetYear] = useState<number>(new Date().getFullYear());
   const [isBulkExtending, setIsBulkExtending] = useState(false);
-
+  const [deleteId, setDeleteId] = useState<string | null>(null);
   // حفظ الفلاتر عند تغييرها
   useEffect(() => {
     const newFilters = {
@@ -143,7 +143,7 @@ export function InstallmentsPage() {
   const handleDelete = async (id: string) => {
     try {
       await deleteInstallment(id);
-      setDeleteConfirm(null);
+      setDeleteId(null);
       // إذا تم حذف العميل المحدد، قم بإلغاء تحديده
       if (id === selectedClientId) {
         setSelectedClientId(null);
@@ -477,7 +477,7 @@ export function InstallmentsPage() {
           onActionClick={(id, action) => {
             if (action === 'view') navigate(`/edit-installment?id=${id}&action=view`);
             if (action === 'edit') navigate(`/edit-installment?id=${id}&action=edit`);
-            if (action === 'delete') setDeleteConfirm(id);
+            if (action === 'delete') setDeleteId(id);
             if (action === 'notes') navigate(`/edit-installment?id=${id}&action=notes`);
           }}
           getStatusColor={getStatusColor}
@@ -572,33 +572,39 @@ export function InstallmentsPage() {
         )}
       </div>
 
-      {/* Delete Confirmation Dialog */}
-      {deleteConfirm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-background rounded-lg p-6 max-w-sm w-full text-center" dir="rtl">
-            <h3 className="text-lg font-semibold mb-4">تأكيد الحذف</h3>
-            <p className="text-muted-foreground mb-6">
-              هل أنت متأكد من رغبتك في حذف هذا القسط؟ لا يمكن التراجع عن هذا الإجراء.
-            </p>
-            <div className="flex gap-20 justify-center">
-              <Button
-                className="right-0"
-                variant="outline"
-                onClick={() => setDeleteConfirm(null)}
-              >
-                إلغاء
-              </Button>
-              <Button
-                className="left-0"
-                variant="destructive"
-                onClick={() => handleDelete(deleteConfirm)}
-              >
-                حذف
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* نافذة تأكيد الحذف */}
+      <Dialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
+        <DialogContent className="sm:max-w-[425px] pt-12" dir="rtl">
+          <DialogHeader className="text-right">
+            <DialogTitle className="text-right">تأكيد حذف القسط</DialogTitle>
+            <DialogDescription className="text-right">
+              هل أنت متأكد من رغبتك في حذف هذا القسط ؟
+              <br />
+              لا يمكن التراجع عن هذا الإجراء.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex !flex-row gap-2 justify-end mt-4">
+            <Button
+              variant="outline"
+              onClick={() => setDeleteId(null)}
+              className="flex-1 sm:flex-none" // يأخذ عرض كامل في الهاتف، وحجم طبيعي في الشاشات الكبيرة
+            >
+              إلغاء
+            </Button>
+            <Button
+              variant="destructive"
+              className="flex-1 sm:flex-none"
+              onClick={() => {
+                if (deleteId) {
+                  handleDelete(deleteId);
+                }
+              }}
+            >
+              حذف
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Password Dialog */}
       {showPasswordDialog && (
