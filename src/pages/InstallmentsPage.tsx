@@ -54,7 +54,7 @@ export function InstallmentsPage() {
   const [targetYear, setTargetYear] = useState<number>(new Date().getFullYear());
   const [isBulkExtending, setIsBulkExtending] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  
+
   // Notes Sheet state
   const [notesSheetOpen, setNotesSheetOpen] = useState(false);
   const [selectedNotesInstallmentId, setSelectedNotesInstallmentId] = useState<string | null>(null);
@@ -203,8 +203,13 @@ export function InstallmentsPage() {
 
         // استخدام دالة updateInstallment الموجودة
         await updateInstallment(installment.id, {
+          clientCode: installment.clientCode,
           clientName: installment.clientName,
+          nationalId: installment.nationalId,
           clientPhone: installment.clientPhone,
+          address: installment.address,
+          latitude: installment.latitude,
+          longitude: installment.longitude,
           clientImages: installment.clientImages,
           installmentAmount: installment.installmentAmount,
           dueDate: newDate.toISOString(),
@@ -215,6 +220,8 @@ export function InstallmentsPage() {
           secondGuarantorPhone: installment.secondGuarantorPhone,
           notes: installment.notes,
         });
+
+
 
         // تحديث عداد المعالجة
         processedCount++;
@@ -658,49 +665,49 @@ export function InstallmentsPage() {
         </div>
       )}
 
-     {/* Notes Sheet */}
-     {selectedNotesInstallmentId && (
-       <InstallmentNotesSheet
-         open={notesSheetOpen}
-         onOpenChange={setNotesSheetOpen}
-         installmentId={selectedNotesInstallmentId}
-         clientName={
-           installments.find(i => i.id === selectedNotesInstallmentId)?.clientName || ''
-         }
-         notes={
-           installments.find(i => i.id === selectedNotesInstallmentId)?.notes || []
-         }
-         onAddNote={async (noteText) => {
-           const installment = installments.find(i => i.id === selectedNotesInstallmentId);
-           if (installment) {
-             await updateInstallment(selectedNotesInstallmentId, {
-               ...installment,
-               notes: [
-                 ...installment.notes,
-                 {
-                   id: Date.now().toString(),
-                   note: noteText,
-                   createdAt: new Date().toISOString(),
-                   updatedAt: new Date().toISOString(),
-                 },
-               ],
-             });
-           }
-         }}
-         onUpdateNote={async (noteId, noteText) => {
-           await updateNote(selectedNotesInstallmentId, noteId, noteText);
-         }}
-         onDeleteNote={async (noteId) => {
-           const installment = installments.find(i => i.id === selectedNotesInstallmentId);
-           if (installment) {
-             await updateInstallment(selectedNotesInstallmentId, {
-               ...installment,
-               notes: installment.notes.filter(n => n.id !== noteId),
-             });
-           }
-         }}
-       />
-     )}
+      {/* Notes Sheet */}
+      {selectedNotesInstallmentId && (
+        <InstallmentNotesSheet
+          open={notesSheetOpen}
+          onOpenChange={setNotesSheetOpen}
+          installmentId={selectedNotesInstallmentId}
+          clientName={
+            installments.find(i => i.id === selectedNotesInstallmentId)?.clientName || ''
+          }
+          notes={
+            installments.find(i => i.id === selectedNotesInstallmentId)?.notes || []
+          }
+          onAddNote={async (noteText) => {
+            const installment = installments.find(i => i.id === selectedNotesInstallmentId);
+            if (installment) {
+              await updateInstallment(selectedNotesInstallmentId, {
+                ...installment,
+                notes: [
+                  ...installment.notes,
+                  {
+                    id: Date.now().toString(),
+                    note: noteText,
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
+                  },
+                ],
+              });
+            }
+          }}
+          onUpdateNote={async (noteId, noteText) => {
+            await updateNote(selectedNotesInstallmentId, noteId, noteText);
+          }}
+          onDeleteNote={async (noteId) => {
+            const installment = installments.find(i => i.id === selectedNotesInstallmentId);
+            if (installment) {
+              await updateInstallment(selectedNotesInstallmentId, {
+                ...installment,
+                notes: installment.notes.filter(n => n.id !== noteId),
+              });
+            }
+          }}
+        />
+      )}
     </div>
   );
 }

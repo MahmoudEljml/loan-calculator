@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useInstallmentsStorage } from '../hooks/useInstallmentsStorage';
-import { ArrowRight, MessageSquare, X, Image as ImageIcon } from 'lucide-react';
+import { ArrowRight, MessageSquare, X, Image as ImageIcon, MapPin, Hash, CreditCard, User, ShieldCheck, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { ImageViewer } from '@/components/ImageViewer';
 import { InstallmentNotesSheet } from '@/components/InstallmentNotesSheet';
@@ -16,12 +16,15 @@ export function EditInstallmentPage() {
   const installmentId = searchParams.get('id');
   const action = searchParams.get('action') || 'view';
   const isView = action === 'view';
-
   const existingInstallment = installmentId ? getInstallment(installmentId) : null;
 
-  // Form state
+  // Form states
+  const [clientCode, setClientCode] = useState('');
   const [clientName, setClientName] = useState('');
+  const [nationalId, setNationalId] = useState('');
   const [clientPhone, setClientPhone] = useState('');
+  const [address, setAddress] = useState('');
+  const [gpsCoordinates, setGpsCoordinates] = useState('');
   const [clientImages, setClientImages] = useState<string[]>([]);
   const [installmentAmount, setInstallmentAmount] = useState('');
   const [dueDate, setDueDate] = useState('');
@@ -30,28 +33,34 @@ export function EditInstallmentPage() {
   const [firstGuarantorPhone, setFirstGuarantorPhone] = useState('');
   const [secondGuarantorName, setSecondGuarantorName] = useState('');
   const [secondGuarantorPhone, setSecondGuarantorPhone] = useState('');
-
-  // Notes state
   const [notes, setNotes] = useState(existingInstallment?.notes || []);
-  const [showNotesSheet, setShowNotesSheet] = useState(false);
 
-  // Image viewer state
+  // UI states
+  const [showNotesSheet, setShowNotesSheet] = useState(false);
   const [viewerOpen, setViewerOpen] = useState(false);
   const [viewerIndex, setViewerIndex] = useState(0);
 
   useEffect(() => {
     if (existingInstallment) {
+      setClientCode(existingInstallment.clientCode || '');
       setClientName(existingInstallment.clientName);
+      setNationalId(existingInstallment.nationalId || '');
       setClientPhone(existingInstallment.clientPhone);
-      setClientImages(existingInstallment.clientImages);
+      setAddress(existingInstallment.address || '');
+
+      if (existingInstallment.latitude && existingInstallment.longitude) {
+        setGpsCoordinates(`${existingInstallment.latitude}, ${existingInstallment.longitude}`);
+      }
+
+      setClientImages(existingInstallment.clientImages || []);
       setInstallmentAmount(existingInstallment.installmentAmount.toString());
       setDueDate(existingInstallment.dueDate.split('T')[0]);
       setStatus(existingInstallment.status);
-      setFirstGuarantorName(existingInstallment.firstGuarantorName);
-      setFirstGuarantorPhone(existingInstallment.firstGuarantorPhone);
-      setSecondGuarantorName(existingInstallment.secondGuarantorName);
-      setSecondGuarantorPhone(existingInstallment.secondGuarantorPhone);
-      setNotes(existingInstallment.notes);
+      setFirstGuarantorName(existingInstallment.firstGuarantorName || '');
+      setFirstGuarantorPhone(existingInstallment.firstGuarantorPhone || '');
+      setSecondGuarantorName(existingInstallment.secondGuarantorName || '');
+      setSecondGuarantorPhone(existingInstallment.secondGuarantorPhone || '');
+      setNotes(existingInstallment.notes || []);
     }
   }, [existingInstallment]);
 
@@ -61,8 +70,7 @@ export function EditInstallmentPage() {
       Array.from(files).forEach((file) => {
         const reader = new FileReader();
         reader.onloadend = () => {
-          const result = reader.result as string;
-          setClientImages((prev) => [...prev, result]);
+          setClientImages((prev) => [...prev, reader.result as string]);
         };
         reader.readAsDataURL(file);
       });
@@ -75,13 +83,29 @@ export function EditInstallmentPage() {
 
   const handleSave = async () => {
     if (!clientName || !clientPhone || !installmentAmount || !dueDate) {
-      toast.error('يرجى ملء جميع الحقول المطلوبة');
+      toast.error('يرجى ملء جميع الحقول المطلوبة *');
       return;
     }
 
+    let lat: number | null = null;
+    let lng: number | null = null;
+
+    if (gpsCoordinates.trim()) {
+      const parts = gpsCoordinates.split(',');
+      if (parts.length === 2) {
+        lat = parseFloat(parts[0].trim());
+        lng = parseFloat(parts[1].trim());
+      }
+    }
+
     const data = {
+      clientCode,
       clientName,
+      nationalId,
       clientPhone,
+      address,
+      latitude: lat,
+      longitude: lng,
       clientImages,
       installmentAmount: parseFloat(installmentAmount),
       dueDate,
@@ -102,323 +126,162 @@ export function EditInstallmentPage() {
         toast.success('تم إضافة قسط جديد بنجاح');
       }
       navigate('/installments');
-    } catch (error) {
+    } catch {
       toast.error('حدث خطأ في الحفظ');
-      console.error(error);
     }
   };
 
+  // Note Handlers
   const handleAddNote = async (noteText: string) => {
-    if (!installmentId) {
-      toast.error('معرف القسط غير صحيح');
-      return;
-    }
-
-    try {
-      await addNote(installmentId, noteText);
-      const now = new Date().toISOString();
-      setNotes([
-        ...notes,
-        {
-          id: Date.now().toString(),
-          note: noteText,
-          createdAt: now,
-          updatedAt: now,
-        },
-      ]);
-    } catch (error) {
-      toast.error('فشل في إضافة الملاحظة');
-      console.error(error);
-      throw error;
-    }
+    if (!installmentId) return;
+    await addNote(installmentId, noteText);
+    setNotes([...notes, { id: Date.now().toString(), note: noteText, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }]);
   };
 
   const handleDeleteNote = async (noteId: string) => {
-    if (!installmentId) {
-      toast.error('معرف القسط غير صحيح');
-      return;
-    }
-
-    try {
-      await deleteNote(installmentId, noteId);
-      setNotes(notes.filter(n => n.id !== noteId));
-    } catch (error) {
-      toast.error('فشل في حذف الملاحظة');
-      console.error(error);
-      throw error;
-    }
+    if (!installmentId) return;
+    await deleteNote(installmentId, noteId);
+    setNotes(notes.filter(n => n.id !== noteId));
   };
 
   const handleUpdateNote = async (noteId: string, noteText: string) => {
-    if (!installmentId) {
-      toast.error('معرف القسط غير صحيح');
-      return;
-    }
-
-    try {
-      await updateNote(installmentId, noteId, noteText);
-      const now = new Date().toISOString();
-      const updatedNotes = notes.map(n =>
-        n.id === noteId
-          ? { ...n, note: noteText, updatedAt: now }
-          : n
-      );
-      setNotes(updatedNotes);
-    } catch (error) {
-      toast.error('فشل في تحديث الملاحظة');
-      console.error(error);
-      throw error;
-    }
+    if (!installmentId) return;
+    await updateNote(installmentId, noteId, noteText);
+    setNotes(notes.map(n => n.id === noteId ? { ...n, note: noteText, updatedAt: new Date().toISOString() } : n));
   };
 
-  // Notes View - استبدالها بـ Sheet
-  // تم حذف isNotes logic وسيتم استخدام Sheet بدلاً منه
-
-  // Edit/Add/View Form
   return (
-    <div className="space-y-4 text-start" dir="rtl">
-      <div className="flex items-center gap-4 mb-6">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => navigate('/installments')}
-          className="gap-2"
-        >
-          <ArrowRight className="w-4 h-4" />
-          رجوع
+    <div className="space-y-6 text-start pb-10" dir="rtl">
+      {/* Header */}
+      <div className="flex items-center gap-4">
+        <Button variant="ghost" size="sm" onClick={() => navigate('/installments')} className="gap-2">
+          <ArrowRight className="w-4 h-4" /> رجوع
         </Button>
-        <h1 className="text-2xl font-semibold">
-          {isView ? 'عرض القسط' : action === 'add' ? 'إضافة قسط جديد' : 'تعديل القسط'}
+        <h1 className="text-2xl font-bold">
+          {isView ? 'تفاصيل القسط' : action === 'add' ? 'إضافة قسط جديد' : 'تعديل بيانات القسط'}
         </h1>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-card rounded-lg p-4">
-        {/* Client Information */}
-        <div>
-          <label className="block text-sm font-medium mb-2">اسم العميل *</label>
-          <Input
-            value={clientName}
-            onChange={(e) => setClientName(e.target.value)}
-            disabled={isView}
-            placeholder="اسم العميل"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium mb-2">رقم الهاتف *</label>
-          <Input
-            value={clientPhone}
-            onChange={(e) => setClientPhone(e.target.value)}
-            disabled={isView}
-            type="number"
-            placeholder="رقم الهاتف"
-          />
-        </div>
-
-        {/* Installment Details */}
-        <div>
-          <label className="block text-sm font-medium mb-2">قيمة القسط *</label>
-          <Input
-            type="number"
-            value={installmentAmount}
-            onChange={(e) => setInstallmentAmount(e.target.value)}
-            disabled={isView}
-            placeholder="0"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium mb-2">تاريخ الاستحقاق *</label>
-          <Input
-            type="date"
-            value={dueDate}
-            onChange={(e) => setDueDate(e.target.value)}
-            disabled={isView}
-          />
-        </div>
-
-        {/* Status */}
-        <div className="md:col-span-2">
-          <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
-            الحالة
-          </label>
-          <select
-            value={status}
-            onChange={(e) => setStatus(e.target.value as 'pending' | 'paid')}
-            disabled={isView}
-            className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-primary-dark bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <option value="pending">قيد الانتظار</option>
-            <option value="paid">مدفوع</option>
-          </select>
-        </div>
-
-        {/* First Guarantor */}
-        <div>
-          <label className="block text-sm font-medium mb-2">اسم الضامن الأول</label>
-          <Input
-            value={firstGuarantorName}
-            onChange={(e) => setFirstGuarantorName(e.target.value)}
-            disabled={isView}
-            placeholder="اسم الضامن الأول"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium mb-2">رقم الهاتف - الضامن الأول</label>
-          <Input
-            value={firstGuarantorPhone}
-            onChange={(e) => setFirstGuarantorPhone(e.target.value)}
-            disabled={isView}
-            type="number"
-            placeholder="رقم الهاتف"
-          />
-        </div>
-
-        {/* Second Guarantor */}
-        <div>
-          <label className="block text-sm font-medium mb-2">اسم الضامن الثاني</label>
-          <Input
-            value={secondGuarantorName}
-            onChange={(e) => setSecondGuarantorName(e.target.value)}
-            disabled={isView}
-            placeholder="اسم الضامن الثاني"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium mb-2">رقم الهاتف - الضامن الثاني</label>
-          <Input
-            value={secondGuarantorPhone}
-            onChange={(e) => setSecondGuarantorPhone(e.target.value)}
-            disabled={isView}
-            type="number"
-            placeholder="رقم الهاتف"
-          />
+      {/* Basic Info Card */}
+      <div className="bg-card rounded-xl p-6 border shadow-sm space-y-4">
+        <h2 className="text-lg font-semibold flex items-center gap-2 mb-4"><User className="w-5 h-5 text-primary" /> بيانات العميل الأساسية</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium mb-1 flex items-center gap-1">
+              <Hash className="w-4 h-4" /> رقم القسط (الفرع/العميل/القرض/القسط)
+            </label>
+            <Input dir='ltr' value={clientCode} onChange={(e) => setClientCode(e.target.value)} disabled={isView} placeholder="01/105/992/05" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">اسم العميل *</label>
+            <Input value={clientName} onChange={(e) => setClientName(e.target.value)} disabled={isView} placeholder="اسم العميل" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1 flex items-center gap-1"><CreditCard className="w-4 h-4" /> الرقم القومي</label>
+            <Input type='number' dir='ltr' value={nationalId} onChange={(e) => setNationalId(e.target.value)} disabled={isView} placeholder="الرقم القومي" />
+          </div>
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium mb-1">رقم الهاتف *</label>
+            <Input value={clientPhone} onChange={(e) => setClientPhone(e.target.value)} disabled={isView} type="number" placeholder="رقم الهاتف" />
+          </div>
         </div>
       </div>
 
-      {/* Notes Button */}
-      {installmentId && !isView && (
-        <div className="flex gap-2">
-          <Button
-            onClick={() => setShowNotesSheet(true)}
-            variant="outline"
-            className="gap-2"
-          >
-            <MessageSquare className="w-4 h-4" />
-            الملاحظات ({notes.length})
-          </Button>
+      {/* Location Card */}
+      <div className="bg-card rounded-xl p-6 border shadow-sm space-y-4">
+        <h2 className="text-lg font-semibold flex items-center gap-2 mb-4"><MapPin className="w-5 h-5 text-primary" /> بيانات الموقع</h2>
+        <div className="grid grid-cols-1 gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">عنوان النشاط</label>
+            <Input value={address} onChange={(e) => setAddress(e.target.value)} disabled={isView} placeholder="العنوان بالتفصيل" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">إحداثيات الـ GPS (خط العرض, خط الطول)</label>
+            <Input dir='ltr' value={gpsCoordinates} onChange={(e) => setGpsCoordinates(e.target.value)} disabled={isView} placeholder="31.0409, 31.3785" />
+          </div>
         </div>
-      )}
+      </div>
 
-      {/* Images Section - At the End */}
-      <div className="bg-card rounded-lg p-4">
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-2">صور العميل</label>
-          <p className="text-xs text-muted-foreground mb-3">يمكنك إضافة عدة صور للعميل</p>
+      {/* Installment Card */}
+      <div className="bg-card rounded-xl p-6 border shadow-sm space-y-4">
+        <h2 className="text-lg font-semibold flex items-center gap-2 mb-4"><FileText className="w-5 h-5 text-primary" /> تفاصيل القسط</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">قيمة القسط *</label>
+            <Input type="number" value={installmentAmount} onChange={(e) => setInstallmentAmount(e.target.value)} disabled={isView} placeholder="0" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">تاريخ الاستحقاق *</label>
+            <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} disabled={isView} />
+          </div>
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium mb-1">الحالة</label>
+            <select value={status} onChange={(e) => setStatus(e.target.value as 'pending' | 'paid')} disabled={isView} className="w-full p-2 border rounded-md bg-background">
+              <option value="pending">قيد الانتظار</option>
+              <option value="paid">تم السداد</option>
+            </select>
+          </div>
+        </div>
+      </div>
 
-          {/* Images Grid */}
-          {clientImages.length > 0 && (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mb-4">
-              {clientImages.map((image, index) => (
-                <div key={index} className="relative group">
-                  <button
-                    onClick={() => {
-                      setViewerIndex(index);
-                      setViewerOpen(true);
-                    }}
-                    className="w-full h-32 object-cover rounded-lg border border-gray-300 dark:border-gray-600 overflow-hidden hover:opacity-80 transition-opacity"
-                  >
-                    <img
-                      src={image}
-                      alt={`صورة ${index + 1}`}
-                      className="w-full h-full object-cover"
-                    />
-                  </button>
-                  {!isView && (
-                    <button
-                      onClick={() => removeImage(index)}
-                      className="absolute top-1 right-1 bg-destructive text-white p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity"
-                      title="حذف الصورة"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
+      {/* Guarantors Card */}
+      <div className="bg-card rounded-xl p-6 border shadow-sm space-y-4">
+        <h2 className="text-lg font-semibold flex items-center gap-2 mb-4"><ShieldCheck className="w-5 h-5 text-primary" /> بيانات الضامنين</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-muted-foreground">الضامن الأول</label>
+            <Input value={firstGuarantorName} onChange={(e) => setFirstGuarantorName(e.target.value)} disabled={isView} placeholder="اسم الضامن الأول" />
+            <Input value={firstGuarantorPhone} onChange={(e) => setFirstGuarantorPhone(e.target.value)} disabled={isView} type="number" placeholder="رقم الهاتف" />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-muted-foreground">الضامن الثاني</label>
+            <Input value={secondGuarantorName} onChange={(e) => setSecondGuarantorName(e.target.value)} disabled={isView} placeholder="اسم الضامن الثاني" />
+            <Input value={secondGuarantorPhone} onChange={(e) => setSecondGuarantorPhone(e.target.value)} disabled={isView} type="number" placeholder="رقم الهاتف" />
+          </div>
+        </div>
+      </div>
 
-          {/* Upload Area */}
-          {!isView && (
-            <div>
-              <input
-                type="file"
-                multiple
-                accept="image/*"
-                onChange={handleImageChange}
-                className="hidden"
-                id="image-upload"
-              />
-              <label
-                htmlFor="image-upload"
-                className="flex items-center justify-center w-full p-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
-              >
-                <div className="text-center">
-                  <ImageIcon className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-                  <p className="text-sm font-medium">انقر لتحميل صور أو اسحبها هنا</p>
-                  <p className="text-xs text-muted-foreground mt-1">يدعم jpg, png وغيرها</p>
-                </div>
-              </label>
-              {clientImages.length > 0 && (
-                <p className="text-xs text-muted-foreground mt-2">
-                  عدد الصور: {clientImages.length}
-                </p>
+      {/* Images Section */}
+      <div className="bg-card rounded-xl p-6 border shadow-sm">
+        <label className="block text-sm font-medium mb-4">صور العميل</label>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
+          {clientImages.map((image, index) => (
+            <div key={index} className="relative group h-32">
+              <img src={image} alt={`صورة ${index + 1}`} className="w-full h-full object-cover rounded-lg border cursor-pointer" onClick={() => { setViewerIndex(index); setViewerOpen(true); }} />
+              {!isView && (
+                <button onClick={() => removeImage(index)} className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full"><X className="w-3 h-3" /></button>
               )}
             </div>
-          )}
-
-          {clientImages.length === 0 && isView && (
-            <div className="text-center py-8 text-muted-foreground border border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
-              لا توجد صور
-            </div>
-          )}
+          ))}
         </div>
+        {!isView && (
+          <label className="block w-full p-4 border-2 border-dashed rounded-lg text-center cursor-pointer hover:bg-muted">
+            <ImageIcon className="w-6 h-6 mx-auto mb-1 text-muted-foreground" />
+            <span className="text-sm">إضافة صور</span>
+            <input type="file" multiple accept="image/*" onChange={handleImageChange} className="hidden" />
+          </label>
+        )}
       </div>
 
-      {/* Image Viewer Modal */}
-      {viewerOpen && clientImages.length > 0 && (
-        <ImageViewer
-          images={clientImages}
-          initialIndex={viewerIndex}
-          onClose={() => setViewerOpen(false)}
-        />
+      {/* Action Buttons */}
+      {installmentId && !isView && (
+        <Button onClick={() => setShowNotesSheet(true)} variant="outline" className="w-full gap-2">
+          <MessageSquare className="w-4 h-4" /> الملاحظات ({notes.length})
+        </Button>
       )}
 
-      {/* Notes Sheet */}
-      <InstallmentNotesSheet
-        open={showNotesSheet}
-        onOpenChange={setShowNotesSheet}
-        installmentId={installmentId}
-        clientName={clientName}
-        notes={notes}
-        onAddNote={handleAddNote}
-        onUpdateNote={handleUpdateNote}
-        onDeleteNote={handleDeleteNote}
-      />
-
-      {/* Action Buttons */}
-      <div className="flex gap-2">
+      <div className="flex gap-4 pt-4 border-t">
         <Button onClick={() => navigate('/installments')} variant="outline" className="flex-1">
           {isView ? 'إغلاق' : 'إلغاء'}
         </Button>
         {!isView && (
-          <Button onClick={handleSave} className="flex-1">
-            حفظ
-          </Button>
+          <Button onClick={handleSave} className="flex-1">حفظ التعديلات</Button>
         )}
       </div>
+      <InstallmentNotesSheet open={showNotesSheet} onOpenChange={setShowNotesSheet} installmentId={installmentId} clientName={clientName} notes={notes} onAddNote={handleAddNote} onUpdateNote={handleUpdateNote} onDeleteNote={handleDeleteNote} />
+
+      {/* Modals */}
+      {viewerOpen && <ImageViewer images={clientImages} initialIndex={viewerIndex} onClose={() => setViewerOpen(false)} />}
     </div>
   );
 }

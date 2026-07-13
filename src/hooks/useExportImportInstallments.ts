@@ -1,7 +1,7 @@
-import { useCallback } from 'react';
-import { toast } from 'sonner';
+import { useCallback } from "react";
+import { toast } from "sonner";
 // import type { Installment } from './useInstallmentsStorage';
-import { useInstallmentsStorage } from './useInstallmentsStorage';
+import { useInstallmentsStorage } from "./useInstallmentsStorage";
 
 export function useExportImportInstallments() {
   const { installments, addInstallment } = useInstallmentsStorage();
@@ -9,22 +9,22 @@ export function useExportImportInstallments() {
   const exportInstallments = useCallback(async () => {
     try {
       if (installments.length === 0) {
-        toast.error('لا توجد بيانات للتصدير');
+        toast.error("لا توجد بيانات للتصدير");
         return;
       }
 
       const dataToExport = {
         exportDate: new Date().toISOString(),
-        version: '1.0',
-        dataType: 'installments',
+        version: "1.0",
+        dataType: "installments",
         data: installments,
       };
 
       const dataStr = JSON.stringify(dataToExport, null, 2);
-      const dataBlob = new Blob([dataStr], { type: 'application/json' });
+      const dataBlob = new Blob([dataStr], { type: "application/json" });
       const url = URL.createObjectURL(dataBlob);
 
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = url;
       link.download = `installments-backup-${Date.now()}.json`;
       document.body.appendChild(link);
@@ -34,8 +34,8 @@ export function useExportImportInstallments() {
 
       toast.success(`تم تصدير ${installments.length} قسط بنجاح`);
     } catch (error) {
-      console.error('Export failed:', error);
-      toast.error('فشل تصدير البيانات');
+      console.error("Export failed:", error);
+      toast.error("فشل تصدير البيانات");
     }
   }, [installments]);
 
@@ -46,11 +46,11 @@ export function useExportImportInstallments() {
         const importedData = JSON.parse(fileText);
 
         if (!importedData.data || !Array.isArray(importedData.data)) {
-          throw new Error('صيغة الملف غير صحيحة');
+          throw new Error("صيغة الملف غير صحيحة");
         }
 
-        if (importedData.dataType !== 'installments') {
-          throw new Error('هذا الملف يحتوي على بيانات عملاء وليس أقساط');
+        if (importedData.dataType !== "installments") {
+          throw new Error("هذا الملف يحتوي على بيانات عملاء وليس أقساط");
         }
 
         let successCount = 0;
@@ -70,10 +70,17 @@ export function useExportImportInstallments() {
               secondGuarantorName: installmentData.secondGuarantorName,
               secondGuarantorPhone: installmentData.secondGuarantorPhone,
               notes: installmentData.notes || [],
+              // إضافة الخصائص المفقودة المطلوبة
+              clientCode: installmentData.clientCode || "",
+              nationalId: installmentData.nationalId || "",
+              address: installmentData.address || "",
+              latitude: installmentData.latitude || "",
+              longitude: installmentData.longitude || "",
             });
+
             successCount++;
           } catch (error) {
-            console.error('Failed to import installment:', error);
+            console.error("Failed to import installment:", error);
             failureCount++;
           }
         }
@@ -85,11 +92,15 @@ export function useExportImportInstallments() {
           toast.error(`فشل استيراد ${failureCount} قسط`);
         }
       } catch (error) {
-        console.error('Import failed:', error);
-        toast.error(error instanceof Error ? error.message : 'فشل استيراد البيانات - تأكد من صيغة الملف');
+        console.error("Import failed:", error);
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : "فشل استيراد البيانات - تأكد من صيغة الملف",
+        );
       }
     },
-    [addInstallment]
+    [addInstallment],
   );
 
   return { exportInstallments, importInstallments };

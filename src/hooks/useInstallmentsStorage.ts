@@ -1,3 +1,4 @@
+// src/hooks/useInstallmentsStorage.ts
 import { useState, useCallback, useEffect } from 'react';
 import { openDB } from 'idb';
 import type { DBSchema, IDBPDatabase } from 'idb';
@@ -11,8 +12,13 @@ export interface InstallmentNote {
 
 export interface Installment {
   id: string;
+  clientCode: string;       // كود العميل
   clientName: string;
+  nationalId: string;       // 🆕 تم إضافة الرقم القومي للنوع (Interface) هنا
   clientPhone: string;
+  address: string;          // عنوان محل الإقامة
+  latitude: number | null;  // خط العرض GPS
+  longitude: number | null; // text خط الطول GPS
   clientImages: string[];
   installmentAmount: number;
   dueDate: string;
@@ -42,7 +48,6 @@ let db: IDBPDatabase<LoanCalculatorDB> | null = null;
 
 async function getDB() {
   if (db) return db;
-
   db = await openDB<LoanCalculatorDB>(DB_NAME, DB_VERSION, {
     upgrade(db) {
       if (!db.objectStoreNames.contains(STORE_NAME)) {
@@ -51,7 +56,6 @@ async function getDB() {
       }
     },
   });
-
   return db;
 }
 
@@ -71,183 +75,127 @@ export function useInstallmentsStorage() {
         setIsLoaded(true);
       }
     };
-
     loadInstallments();
   }, []);
 
-  const addInstallment = useCallback(
-    async (installment: Omit<Installment, 'id' | 'createdAt' | 'updatedAt'>) => {
-      const id = Date.now().toString();
-      const now = new Date().toISOString();
-      const newInstallment: Installment = {
-        ...installment,
-        id,
-        createdAt: now,
-        updatedAt: now,
-      };
+  const addInstallment = useCallback(async (installment: Omit<Installment, 'id' | 'createdAt' | 'updatedAt'>) => {
+    const id = Date.now().toString();
+    const now = new Date().toISOString();
+    const newInstallment: Installment = {
+      ...installment,
+      id,
+      createdAt: now,
+      updatedAt: now,
+    };
 
-      try {
-        const database = await getDB();
-        await database.add(STORE_NAME, newInstallment);
-        setInstallments([...installments, newInstallment]);
-        return id;
-      } catch (error) {
-        console.error('Failed to add installment:', error);
-        throw error;
+    try {
+      const database = await getDB();
+      await database.add(STORE_NAME, newInstallment);
+      setInstallments(prev => [...prev, newInstallment]);
+      return id;
+    } catch (error) {
+      console.error('Failed to add installment:', error);
+      throw error;
+    }
+  }, []);
+
+  const updateInstallment = useCallback(async (id: string, installment: Omit<Installment, 'id' | 'createdAt' | 'updatedAt'>) => {
+    const now = new Date().toISOString();
+    
+    try {
+      const database = await getDB();
+      const existingInstallment = await database.get(STORE_NAME, id);
+      if (existingInstallment) {
+        const updatedItem: Installment = {
+          ...installment,
+          id,
+          createdAt: existingInstallment.createdAt,
+          updatedAt: now,
+        };
+        await database.put(STORE_NAME, updatedItem);
+        setInstallments(prev => prev.map(i => i.id === id ? updatedItem : i));
       }
-    },
-    [installments]
-  );
+    } catch (error) {
+      console.error('Failed to update installment:', error);
+    }
+  }, []);
 
-  const updateInstallment = useCallback(
-    async (id: string, installment: Omit<Installment, 'id' | 'createdAt' | 'updatedAt'>) => {
-      const now = new Date().toISOString();
-      const updated = installments.map(i =>
-        i.id === id
-          ? {
-              ...installment,
-              id,
-              createdAt: i.createdAt,
-              updatedAt: now,
-            }
-          : i
-      );
+  const deleteInstallment = useCallback(async (id: string) => {
+    try {
+      const database = await getDB();
+      await database.delete(STORE_NAME, id);
+      setInstallments(prev => prev.filter(i => i.id !== id));
+    } catch (error) {
+      console.error('Failed to delete installment:', error);
+    }
+  }, []);
 
-      try {
-        const database = await getDB();
-        const existingInstallment = await database.get(STORE_NAME, id);
-        if (existingInstallment) {
-          await database.put(STORE_NAME, updated.find(i => i.id === id)!);
-          setInstallments(updated);
-        }
-      } catch (error) {
-        console.error('Failed to update installment:', error);
+  const getInstallment = useCallback((id: string) => {
+    return installments.find(i => i.id === id);
+  }, [installments]);
+
+  const addNote = useCallback(async (installmentId: string, noteText: string) => {
+    const now = new Date().toISOString();
+    const noteId = Date.now().toString();
+    
+    try {
+      const database = await getDB();
+      const installment = await database.get(STORE_NAME, installmentId);
+      if (installment) {
+        const updatedItem: Installment = {
+          ...installment,
+          notes: [...installment.notes, { id: noteId, note: noteText, createdAt: now, updatedAt: now }],
+          updatedAt: now,
+        };
+        await database.put(STORE_NAME, updatedItem);
+        setInstallments(prev => prev.map(i => i.id === installmentId ? updatedItem : i));
       }
-    },
-    [installments]
-  );
-
-  const deleteInstallment = useCallback(
-    async (id: string) => {
-      const updated = installments.filter(i => i.id !== id);
-
-      try {
-        const database = await getDB();
-        await database.delete(STORE_NAME, id);
-        setInstallments(updated);
-      } catch (error) {
-        console.error('Failed to delete installment:', error);
-      }
-    },
-    [installments]
-  );
-
-  const getInstallment = useCallback(
-    (id: string) => {
-      return installments.find(i => i.id === id);
-    },
-    [installments]
-  );
-
-  const addNote = useCallback(
-    async (installmentId: string, noteText: string) => {
-      const now = new Date().toISOString();
-      const noteId = Date.now().toString();
-      const updated = installments.map(i =>
-        i.id === installmentId
-          ? {
-              ...i,
-              notes: [
-                ...i.notes,
-                {
-                  id: noteId,
-                  note: noteText,
-                  createdAt: now,
-                  updatedAt: now,
-                },
-              ],
-              updatedAt: now,
-            }
-          : i
-      );
-
-      try {
-        const database = await getDB();
-        const installment = updated.find(i => i.id === installmentId);
-        if (installment) {
-          await database.put(STORE_NAME, installment);
-          setInstallments(updated);
-        }
-      } catch (error) {
-        console.error('Failed to add note:', error);
-      }
-
       return noteId;
-    },
-    [installments]
-  );
+    } catch (error) {
+      console.error('Failed to add note:', error);
+      return '';
+    }
+  }, []);
 
-  const updateNote = useCallback(
-    async (installmentId: string, noteId: string, noteText: string) => {
-      const now = new Date().toISOString();
-      const updated = installments.map(i =>
-        i.id === installmentId
-          ? {
-              ...i,
-              notes: i.notes.map(n =>
-                n.id === noteId
-                  ? {
-                      ...n,
-                      note: noteText,
-                      updatedAt: now,
-                    }
-                  : n
-              ),
-              updatedAt: now,
-            }
-          : i
-      );
-
-      try {
-        const database = await getDB();
-        const installment = updated.find(i => i.id === installmentId);
-        if (installment) {
-          await database.put(STORE_NAME, installment);
-          setInstallments(updated);
-        }
-      } catch (error) {
-        console.error('Failed to update note:', error);
+  const updateNote = useCallback(async (installmentId: string, noteId: string, noteText: string) => {
+    const now = new Date().toISOString();
+    
+    try {
+      const database = await getDB();
+      const installment = await database.get(STORE_NAME, installmentId);
+      if (installment) {
+        const updatedItem: Installment = {
+          ...installment,
+          notes: installment.notes.map(n => n.id === noteId ? { ...n, note: noteText, updatedAt: now } : n),
+          updatedAt: now,
+        };
+        await database.put(STORE_NAME, updatedItem);
+        setInstallments(prev => prev.map(i => i.id === installmentId ? updatedItem : i));
       }
-    },
-    [installments]
-  );
+    } catch (error) {
+      console.error('Failed to update note:', error);
+    }
+  }, []);
 
-  const deleteNote = useCallback(
-    async (installmentId: string, noteId: string) => {
-      const now = new Date().toISOString();
-      const updated = installments.map(i =>
-        i.id === installmentId
-          ? {
-              ...i,
-              notes: i.notes.filter(n => n.id !== noteId),
-              updatedAt: now,
-            }
-          : i
-      );
-
-      try {
-        const database = await getDB();
-        const installment = updated.find(i => i.id === installmentId);
-        if (installment) {
-          await database.put(STORE_NAME, installment);
-          setInstallments(updated);
-        }
-      } catch (error) {
-        console.error('Failed to delete note:', error);
+  const deleteNote = useCallback(async (installmentId: string, noteId: string) => {
+    const now = new Date().toISOString();
+    
+    try {
+      const database = await getDB();
+      const installment = await database.get(STORE_NAME, installmentId);
+      if (installment) {
+        const updatedItem: Installment = {
+          ...installment,
+          notes: installment.notes.filter(n => n.id !== noteId),
+          updatedAt: now,
+        };
+        await database.put(STORE_NAME, updatedItem);
+        setInstallments(prev => prev.map(i => i.id === installmentId ? updatedItem : i));
       }
-    },
-    [installments]
-  );
+    } catch (error) {
+      console.error('Failed to delete note:', error);
+    }
+  }, []);
 
   return {
     installments,
