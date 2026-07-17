@@ -6,19 +6,18 @@ import { useInstallmentsStorage } from '../hooks/useInstallmentsStorage';
 import { useExportImportInstallments } from '../hooks/useExportImportInstallments';
 import useLocalStorage from '../hooks/useLocalStorage';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Plus, Search, Download, Upload, ChevronDown, Lock } from 'lucide-react';
+import { Plus, Search, Download, Upload, ChevronDown, Lock, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { InstallmentsTable } from '@/components/InstallmentsTable';
 import { InstallmentNotesSheet } from '@/components/InstallmentNotesSheet';
 
 export function InstallmentsPage() {
   const navigate = useNavigate();
-  const { installments, isLoaded, deleteInstallment, updateInstallment, updateNote } = useInstallmentsStorage();
+  const { installments, isLoaded, deleteInstallment, updateInstallment, updateNote, deleteAllInstallments } = useInstallmentsStorage();
   const { exportInstallments, importInstallments } = useExportImportInstallments();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const tableRef = useRef<HTMLDivElement>(null);
-  // const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
-
+  
   // استخدام useLocalStorage hook لحفظ الفلاتر
   const [filters, setFilters] = useLocalStorage('loan_calculator_filters', {
     searchTerm: '',
@@ -54,10 +53,14 @@ export function InstallmentsPage() {
   const [targetYear, setTargetYear] = useState<number>(new Date().getFullYear());
   const [isBulkExtending, setIsBulkExtending] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  
+  // New state for delete all data confirmation
+  const [showDeleteAllDialog, setShowDeleteAllDialog] = useState(false);
 
   // Notes Sheet state
   const [notesSheetOpen, setNotesSheetOpen] = useState(false);
   const [selectedNotesInstallmentId, setSelectedNotesInstallmentId] = useState<string | null>(null);
+  
   // حفظ الفلاتر عند تغييرها
   useEffect(() => {
     const newFilters = {
@@ -156,6 +159,19 @@ export function InstallmentsPage() {
     } catch (error) {
       console.error('Failed to delete installment:', error);
       toast.error('فشل في حذف القسط');
+    }
+  };
+  
+  // New handler for deleting all data
+  const handleDeleteAll = async () => {
+    try {
+      await deleteAllInstallments();
+      setShowDeleteAllDialog(false);
+      toast.success('تم حذف جميع البيانات بنجاح');
+      setSelectedClientId(null);
+    } catch (error) {
+      console.error('Failed to delete all installments:', error);
+      toast.error('فشل في حذف جميع البيانات');
     }
   };
 
@@ -555,10 +571,11 @@ export function InstallmentsPage() {
               ترحيل الأقساط
             </Button>
           </div>
-          {/* Import/Export Buttons Component */}
+          {/* Import/Export/Delete All Buttons Component */}
           <ImportExportButtons
             onImport={handleFileChange}
             onExport={exportInstallments}
+            onDeleteAll={() => setShowDeleteAllDialog(true)}
           />
         </div>
 
@@ -616,6 +633,36 @@ export function InstallmentsPage() {
               }}
             >
               حذف
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Delete All Data Confirmation Dialog */}
+      <Dialog open={showDeleteAllDialog} onOpenChange={setShowDeleteAllDialog}>
+        <DialogContent className="sm:max-w-[425px] pt-12" dir="rtl">
+          <DialogHeader className="text-right">
+            <DialogTitle className="text-right">تأكيد حذف جميع البيانات</DialogTitle>
+            <DialogDescription className="text-right">
+              هل أنت متأكد من رغبتك في حذف جميع البيانات؟
+              <br />
+              لا يمكن التراجع عن هذا الإجراء.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex !flex-row gap-2 justify-end mt-4">
+            <Button
+              variant="outline"
+              onClick={() => setShowDeleteAllDialog(false)}
+              className="flex-1 sm:flex-none"
+            >
+              إلغاء
+            </Button>
+            <Button
+              variant="destructive"
+              className="flex-1 sm:flex-none"
+              onClick={handleDeleteAll}
+            >
+              حذف الكل
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -716,11 +763,13 @@ export function InstallmentsPage() {
 interface ImportExportButtonsProps {
   onImport: (event: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
   onExport: () => void;
+  onDeleteAll: () => void;
 }
 
 const ImportExportButtons: React.FC<ImportExportButtonsProps> = ({
   onImport,
   onExport,
+  onDeleteAll,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -762,6 +811,15 @@ const ImportExportButtons: React.FC<ImportExportButtonsProps> = ({
       >
         <Download className="w-4 h-4" />
         تصدير بيانات
+      </Button>
+      <Button
+        variant="destructive"
+        size="sm"
+        onClick={onDeleteAll}
+        className="gap-2"
+      >
+        <Trash2 className="w-4 h-4" />
+        حذف جميع البيانات
       </Button>
     </div>
   );

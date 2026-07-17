@@ -130,6 +130,18 @@ export function useInstallmentsStorage() {
     }
   }, []);
 
+  // New function to delete all installments
+  const deleteAllInstallments = useCallback(async () => {
+    try {
+      const database = await getDB();
+      await database.clear(STORE_NAME);
+      setInstallments([]);
+    } catch (error) {
+      console.error('Failed to delete all installments:', error);
+      throw error;
+    }
+  }, []);
+
   const getInstallment = useCallback((id: string) => {
     return installments.find(i => i.id === id);
   }, [installments]);
@@ -203,6 +215,7 @@ export function useInstallmentsStorage() {
     addInstallment,
     updateInstallment,
     deleteInstallment,
+    deleteAllInstallments, // Added to the return object
     getInstallment,
     addNote,
     updateNote,
