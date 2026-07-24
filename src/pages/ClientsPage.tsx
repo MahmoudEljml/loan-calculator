@@ -4,9 +4,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useClientsStorage } from '../hooks/useClientsStorage';
 import { useExportImportClients } from '../hooks/useExportImportClients';
-import { Plus, Trash2, Edit2, Search, Eye, Download, Upload } from 'lucide-react';
+import { Plus, Trash2, Edit2, Eye, Download, Upload, Minus, X } from 'lucide-react';
 import { pdf } from '@react-pdf/renderer';
 import { ClientsPDF } from '@/components/ClientsPDF';
+import FAB from '@/components/FAB';
 // دالة لتنسيق التاريخ
 const formatDate = (dateString: string) => {
   if (!dateString) return '-';
@@ -28,9 +29,9 @@ export function ClientsPage() {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
 
-  const [filterYear, setFilterYear] = useState<string>('');
-  const [filterMonth, setFilterMonth] = useState<string>('');
-  const [filterDay, setFilterDay] = useState<string>('');
+  const [filterYear, setFilterYear] = useState<number | null>(null);
+  const [filterMonth, setFilterMonth] = useState<number | null>(null);
+  const [filterDay, setFilterDay] = useState<number | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -50,7 +51,6 @@ export function ClientsPage() {
 
   const filteredClients = useMemo(() => {
     return clients.filter(client => {
-      // فلترة البحث بالاسم أو رقم الهاتف
       const matchesSearch =
         client.client_information.full_name.val.toLowerCase().includes(searchTerm.toLowerCase()) ||
         client.client_information.phone_number.val.includes(searchTerm);
@@ -60,15 +60,15 @@ export function ClientsPage() {
       // فلترة التاريخ (السنة، الشهر، اليوم)
       if (client.createdAt) {
         const clientDate = new Date(client.createdAt);
-        const cYear = clientDate.getFullYear().toString();
-        const cMonth = (clientDate.getMonth() + 1).toString();
-        const cDay = clientDate.getDate().toString();
+        const cYear = clientDate.getFullYear();
+        const cMonth = clientDate.getMonth() + 1;
+        const cDay = clientDate.getDate();
 
-        if (filterYear && cYear !== filterYear) return false;
-        if (filterMonth && cMonth !== filterMonth) return false;
-        if (filterDay && cDay !== filterDay) return false;
+        if (filterYear !== null && cYear !== filterYear) return false;
+        if (filterMonth !== null && cMonth !== filterMonth) return false;
+        if (filterDay !== null && cDay !== filterDay) return false;
       } else {
-        if (filterYear || filterMonth || filterDay) return false;
+        if (filterYear !== null || filterMonth !== null || filterDay !== null) return false;
       }
 
       return true;
@@ -87,21 +87,21 @@ export function ClientsPage() {
   // دالة لزيادة أو نقص يوم واحد
   const handleShiftDay = (amount: number) => {
     // استخدام التاريخ الحالي أو التاريخ المحدد كمرجع
-    const y = parseInt(filterYear) || new Date().getFullYear();
-    const m = parseInt(filterMonth) ? parseInt(filterMonth) - 1 : new Date().getMonth();
-    const d = parseInt(filterDay) || new Date().getDate();
+    const y = filterYear || new Date().getFullYear();
+    const m = filterMonth ? filterMonth - 1 : new Date().getMonth();
+    const d = filterDay || new Date().getDate();
 
     const date = new Date(y, m, d + amount);
-    setFilterYear(date.getFullYear().toString());
-    setFilterMonth((date.getMonth() + 1).toString());
-    setFilterDay(date.getDate().toString());
+    setFilterYear(date.getFullYear());
+    setFilterMonth(date.getMonth() + 1);
+    setFilterDay(date.getDate());
   };
 
   // زر لإلغاء وتفريغ الفلتر الزمني
   const handleResetDateFilter = () => {
-    setFilterYear('');
-    setFilterMonth('');
-    setFilterDay('');
+    setFilterYear(null);
+    setFilterMonth(null);
+    setFilterDay(null);
   };
   const handleDownloadPDF = async () => {
     try {
@@ -138,7 +138,15 @@ export function ClientsPage() {
 
       {/* Search Bar */}
       <div className="relative mb-6">
-        <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        {searchTerm && (
+          <button
+            onClick={() => setSearchTerm('')}
+            className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground hover:text-foreground transition-colors"
+            aria-label="Clear search"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
         <Input
           placeholder="ابحث باسم العميل أو رقم الهاتف أو نوع النشاط..."
           value={searchTerm}
@@ -148,70 +156,81 @@ export function ClientsPage() {
       </div>
       {/* Date Filter & Shift Controls */}
       <div className="flex flex-wrap items-center gap-3 bg-card p-4 rounded-lg border shadow-sm mb-6" dir="rtl">
-        <span className="text-sm font-medium text-muted-foreground">فلترة بالتاريخ:</span>
+        <div className="text-sm font-medium text-muted- whitespace-nowrap w-full">فلترة بالتاريخ:</div>
 
-        {/* خانة السنة */}
-        <Input
-          type="number"
-          placeholder="السنة (مثال: 2026)"
-          value={filterYear}
-          onChange={(e) => setFilterYear(e.target.value)}
-          className="w-32"
-        />
-
-        {/* خانة الشهر */}
-        <Input
-          type="number"
-          placeholder="الشهر (1-12)"
-          min="1"
-          max="12"
-          value={filterMonth}
-          onChange={(e) => setFilterMonth(e.target.value)}
-          className="w-28"
-        />
-
-        {/* خانة اليوم */}
-        <Input
-          type="number"
-          placeholder="اليوم (1-31)"
-          min="1"
-          max="31"
-          value={filterDay}
-          onChange={(e) => setFilterDay(e.target.value)}
-          className="w-28"
-        />
-
-        {/* أزرار زيادة ونقصان اليوم */}
-        <div className="flex gap-1">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleShiftDay(-1)}
-            title="رجوع يوم سابق"
-          >
-            - يوم
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleShiftDay(1)}
-            title="تقدم يوم تالي"
-          >
-            + يوم
-          </Button>
-        </div>
-
-        {/* زر إعادة ضبط الفلتر */}
-        {(filterYear || filterMonth || filterDay) && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleResetDateFilter}
-            className="text-destructive hover:text-destructive"
-          >
-            إلغاء الفلتر
-          </Button>
+        {filterYear !== null && filterMonth !== null && filterDay !== null && (
+          <div className="text-sm">
+            {["الأحد", "الاثنين", "الثلاثاء", "الاربعاء", "الخميس", "الجمعه", "السبت"][
+              new Date(filterYear, filterMonth - 1, filterDay).getDay()
+            ]}
+          </div>
         )}
+
+        <div className='flex flex-wrap justify-center gap-3 w-full '>
+          <div className='flex flex-wrap items-center gap-3'>
+            {/* خانة السنة */}
+            <Input
+              type="number"
+              placeholder="السنة"
+              value={filterYear ?? ''}
+              onChange={(e) => setFilterYear(e.target.value ? parseInt(e.target.value) : null)}
+              className="w-32"
+            />
+            {/* خانة الشهر */}
+            <Input
+              type="number"
+              placeholder="الشهر"
+              min="1"
+              max="12"
+              value={filterMonth ?? ''}
+              onChange={(e) => setFilterMonth(e.target.value ? parseInt(e.target.value) : null)}
+              className="w-28"
+            />
+            {/* خانة اليوم */}
+            <Input
+              type="number"
+              placeholder="اليوم"
+              min="1"
+              max="31"
+              value={filterDay ?? ''}
+              onChange={(e) => setFilterDay(e.target.value ? parseInt(e.target.value) : null)}
+              className="w-28"
+            />
+          </div>
+
+          <div className='flex flex-wrap items-center gap-3'>
+            {/* أزرار زيادة ونقصان اليوم */}
+            <FAB
+              text='-'
+              size="small"
+              icon={<Minus name="chevron-left" size={20} />}
+              // title="تأخير يوم سابق"
+              onClick={() => handleShiftDay(-1)}
+
+            />
+            <div className=''>
+
+              {/* زر إعادة ضبط الفلتر */}
+              {(filterYear || filterMonth || filterDay) && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleResetDateFilter}
+                  className="text-destructive hover:text-destructive"
+                >
+                  إلغاء الفلتر
+                </Button>
+              )}
+            </div>
+            <FAB
+              text='+'
+              size="small"
+              icon={<Plus name="chevron-right" size={20} />}
+              // title="تقدم يوم تالي"
+              onClick={() => handleShiftDay(1)}
+            />
+          </div>
+        </div>
       </div>
       {/* Table - Desktop View */}
       <div className="hidden sm:block overflow-x-auto rounded-lg border">
