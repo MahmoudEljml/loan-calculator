@@ -5,7 +5,8 @@ import { Input } from '@/components/ui/input';
 import { useClientsStorage } from '../hooks/useClientsStorage';
 import { useExportImportClients } from '../hooks/useExportImportClients';
 import { Plus, Trash2, Edit2, Search, Eye, Download, Upload } from 'lucide-react';
-
+import { pdf } from '@react-pdf/renderer';
+import { ClientsPDF } from '@/components/ClientsPDF';
 // دالة لتنسيق التاريخ
 const formatDate = (dateString: string) => {
   if (!dateString) return '-';
@@ -25,6 +26,12 @@ export function ClientsPage() {
   const { exportClients, importClients } = useExportImportClients();
   const [searchTerm, setSearchTerm] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  const [filterYear, setFilterYear] = useState<string>('');
+  const [filterMonth, setFilterMonth] = useState<string>('');
+  const [filterDay, setFilterDay] = useState<string>('');
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleImportClick = () => {
@@ -42,14 +49,31 @@ export function ClientsPage() {
   };
 
   const filteredClients = useMemo(() => {
-    if (!searchTerm) return clients;
-    const term = searchTerm.toLowerCase();
-    return clients.filter(client =>
-      client.client_information.full_name.val.toLowerCase().includes(term) ||
-      client.client_information.phone_number.val.toLowerCase().includes(term) ||
-      client.business_details.business_type.val.toLowerCase().includes(term)
-    );
-  }, [clients, searchTerm]);
+    return clients.filter(client => {
+      // فلترة البحث بالاسم أو رقم الهاتف
+      const matchesSearch =
+        client.client_information.full_name.val.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        client.client_information.phone_number.val.includes(searchTerm);
+
+      if (!matchesSearch) return false;
+
+      // فلترة التاريخ (السنة، الشهر، اليوم)
+      if (client.createdAt) {
+        const clientDate = new Date(client.createdAt);
+        const cYear = clientDate.getFullYear().toString();
+        const cMonth = (clientDate.getMonth() + 1).toString();
+        const cDay = clientDate.getDate().toString();
+
+        if (filterYear && cYear !== filterYear) return false;
+        if (filterMonth && cMonth !== filterMonth) return false;
+        if (filterDay && cDay !== filterDay) return false;
+      } else {
+        if (filterYear || filterMonth || filterDay) return false;
+      }
+
+      return true;
+    });
+  }, [clients, searchTerm, filterYear, filterMonth, filterDay]);
 
   const handleDelete = (id: string) => {
     deleteClient(id);
@@ -60,7 +84,48 @@ export function ClientsPage() {
     return <div className="text-center py-8" dir="rtl">جاري التحميل...</div>;
   }
 
-  console.log(clients);
+  // دالة لزيادة أو نقص يوم واحد
+  const handleShiftDay = (amount: number) => {
+    // استخدام التاريخ الحالي أو التاريخ المحدد كمرجع
+    const y = parseInt(filterYear) || new Date().getFullYear();
+    const m = parseInt(filterMonth) ? parseInt(filterMonth) - 1 : new Date().getMonth();
+    const d = parseInt(filterDay) || new Date().getDate();
+
+    const date = new Date(y, m, d + amount);
+    setFilterYear(date.getFullYear().toString());
+    setFilterMonth((date.getMonth() + 1).toString());
+    setFilterDay(date.getDate().toString());
+  };
+
+  // زر لإلغاء وتفريغ الفلتر الزمني
+  const handleResetDateFilter = () => {
+    setFilterYear('');
+    setFilterMonth('');
+    setFilterDay('');
+  };
+  const handleDownloadPDF = async () => {
+    try {
+      setIsGenerating(true);
+
+      // توليد ملف الـ PDF بشكل برمجي وتحويله إلى Blob
+      const blob = await pdf(<ClientsPDF clients={filteredClients} />).toBlob();
+
+      // إنشاء رابط وهمي لتحميل الملف تلقائياً على جهاز المستخدم
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `clients-report-${new Date().toISOString().slice(0, 10)}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('خطأ أثناء توليد ملف الـ PDF:', error);
+      alert('حدث خطأ أثناء تجهيز ملف الـ PDF، يجدر مراجعة الـ Console.');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
   return (
     <div className="space-y-4 text-start" dir="rtl">
       <div className="flex items-center justify-between mb-6">
@@ -81,7 +146,73 @@ export function ClientsPage() {
           className="pl-4 pr-10"
         />
       </div>
+      {/* Date Filter & Shift Controls */}
+      <div className="flex flex-wrap items-center gap-3 bg-card p-4 rounded-lg border shadow-sm mb-6" dir="rtl">
+        <span className="text-sm font-medium text-muted-foreground">فلترة بالتاريخ:</span>
 
+        {/* خانة السنة */}
+        <Input
+          type="number"
+          placeholder="السنة (مثال: 2026)"
+          value={filterYear}
+          onChange={(e) => setFilterYear(e.target.value)}
+          className="w-32"
+        />
+
+        {/* خانة الشهر */}
+        <Input
+          type="number"
+          placeholder="الشهر (1-12)"
+          min="1"
+          max="12"
+          value={filterMonth}
+          onChange={(e) => setFilterMonth(e.target.value)}
+          className="w-28"
+        />
+
+        {/* خانة اليوم */}
+        <Input
+          type="number"
+          placeholder="اليوم (1-31)"
+          min="1"
+          max="31"
+          value={filterDay}
+          onChange={(e) => setFilterDay(e.target.value)}
+          className="w-28"
+        />
+
+        {/* أزرار زيادة ونقصان اليوم */}
+        <div className="flex gap-1">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handleShiftDay(-1)}
+            title="رجوع يوم سابق"
+          >
+            - يوم
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handleShiftDay(1)}
+            title="تقدم يوم تالي"
+          >
+            + يوم
+          </Button>
+        </div>
+
+        {/* زر إعادة ضبط الفلتر */}
+        {(filterYear || filterMonth || filterDay) && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleResetDateFilter}
+            className="text-destructive hover:text-destructive"
+          >
+            إلغاء الفلتر
+          </Button>
+        )}
+      </div>
       {/* Table - Desktop View */}
       <div className="hidden sm:block overflow-x-auto rounded-lg border">
         <table className="w-full text-sm">
@@ -266,7 +397,8 @@ export function ClientsPage() {
       )}
 
       {/* Import/Export Buttons */}
-      <div className="flex gap-3 justify-end py-6 border-t mt-8 pt-6">
+      {/* Import/Export Buttons */}
+      <div className="flex gap-3 justify-end py-6 border-t mt-8 pt-6 flex-wrap">
         <input
           ref={fileInputRef}
           type="file"
@@ -290,7 +422,19 @@ export function ClientsPage() {
           className="gap-2"
         >
           <Download className="w-4 h-4" />
-          تصدير بيانات
+          تصدير بيانات JSON
+        </Button>
+
+        {/* زر تصدير الـ PDF */}
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-2"
+          onClick={handleDownloadPDF}
+          disabled={isGenerating}
+        >
+          <Download className="w-4 h-4" />
+          {isGenerating ? 'جاري تجهيز PDF...' : 'تصدير PDF'}
         </Button>
       </div>
 
