@@ -6,6 +6,19 @@ import { useClientsStorage } from '../hooks/useClientsStorage';
 import { useExportImportClients } from '../hooks/useExportImportClients';
 import { Plus, Trash2, Edit2, Search, Eye, Download, Upload } from 'lucide-react';
 
+// دالة لتنسيق التاريخ
+const formatDate = (dateString: string) => {
+  if (!dateString) return '-';
+  const date = new Date(dateString);
+  return date.toLocaleDateString('ar-EG', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};
+
 export function ClientsPage() {
   const navigate = useNavigate();
   const { clients, isLoaded, deleteClient } = useClientsStorage();
@@ -47,8 +60,6 @@ export function ClientsPage() {
     return <div className="text-center py-8" dir="rtl">جاري التحميل...</div>;
   }
 
-
-
   console.log(clients);
   return (
     <div className="space-y-4 text-start" dir="rtl">
@@ -81,6 +92,8 @@ export function ClientsPage() {
               <th className="px-4 py-3 text-right font-semibold">رقم الهاتف</th>
               <th className="px-4 py-3 text-right font-semibold">نوع النشاط</th>
               <th className="px-4 py-3 text-right font-semibold">العنوان</th>
+              <th className="px-4 py-3 text-right font-semibold">تاريخ الإنشاء</th>
+              <th className="px-4 py-3 text-right font-semibold">تاريخ التحديث</th>
               <th className="px-4 py-3 text-center font-semibold">الإجراءات</th>
             </tr>
           </thead>
@@ -117,6 +130,12 @@ export function ClientsPage() {
                 </td>
                 <td className="px-4 py-3">
                   {client.business_details.address.val || '-'}
+                </td>
+                <td className="px-4 py-3">
+                  {formatDate(client.createdAt)}
+                </td>
+                <td className="px-4 py-3">
+                  {formatDate(client.updatedAt)}
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex gap-1 justify-center">
@@ -189,6 +208,12 @@ export function ClientsPage() {
                 </p>
                 <p>
                   <span className="font-medium">العنوان:</span> {client.business_details.address.val || '-'}
+                </p>
+                <p>
+                  <span className="font-medium">تاريخ الإنشاء:</span> {formatDate(client.createdAt)}
+                </p>
+                <p>
+                  <span className="font-medium">تاريخ التحديث:</span> {formatDate(client.updatedAt)}
                 </p>
               </div>
               <div className="flex gap-2 pt-2 border-t">

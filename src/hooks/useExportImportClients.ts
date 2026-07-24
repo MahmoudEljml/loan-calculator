@@ -1,10 +1,9 @@
 import { useCallback } from 'react';
 import { toast } from 'sonner';
-// import type { ClientData } from './useClientsStorage';
 import { useClientsStorage } from './useClientsStorage';
 
 export function useExportImportClients() {
-  const { clients, addClient } = useClientsStorage();
+  const { clients,  restoreClient } = useClientsStorage();
 
   const exportClients = useCallback(async () => {
     try {
@@ -58,10 +57,14 @@ export function useExportImportClients() {
 
         for (const clientData of importedData.data) {
           try {
-            await addClient({
+            // استخدام restoreClient بدلاً من addClient للحفاظ على التواريخ الأصلية
+            await restoreClient({
+              id: clientData.id,
               client_information: clientData.client_information,
               business_details: clientData.business_details,
               clientImages: clientData.clientImages || [],
+              createdAt: clientData.createdAt,
+              updatedAt: clientData.updatedAt,
             });
             successCount++;
           } catch (error) {
@@ -81,7 +84,7 @@ export function useExportImportClients() {
         toast.error(error instanceof Error ? error.message : 'فشل استيراد البيانات - تأكد من صيغة الملف');
       }
     },
-    [addClient]
+    [restoreClient]
   );
 
   return { exportClients, importClients };

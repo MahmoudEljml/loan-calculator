@@ -93,6 +93,37 @@ export function useClientsStorage() {
     [clients]
   );
 
+  // دالة جديدة لاستعادة العميل مع الحفاظ على التواريخ الأصلية
+  const restoreClient = useCallback(
+    async (client: ClientData) => {
+      try {
+        const database = await getDB();
+        // التحقق من وجود العميل بالفعل
+        const existingClient = await database.get(STORE_NAME, client.id);
+        
+        if (existingClient) {
+          // إذا كان العميل موجوداً، نقوم بتحديثه مع الحفاظ على التواريخ الأصلية
+          await database.put(STORE_NAME, client);
+          // تحديث الحالة المحلية
+          setClients(prevClients => 
+            prevClients.map(c => c.id === client.id ? client : c)
+          );
+        } else {
+          // إذا لم يكن العميل موجوداً، نقوم بإضافته
+          await database.add(STORE_NAME, client);
+          // تحديث الحالة المحلية
+          setClients(prevClients => [...prevClients, client]);
+        }
+        
+        return client.id;
+      } catch (error) {
+        console.error('Failed to restore client:', error);
+        throw error;
+      }
+    },
+    []
+  );
+
   const updateClient = useCallback(
     async (id: string, client: Omit<ClientData, 'id' | 'createdAt' | 'updatedAt'>) => {
       const now = new Date().toISOString();
@@ -149,6 +180,7 @@ export function useClientsStorage() {
     clients,
     isLoaded,
     addClient,
+    restoreClient, // إضافة الدالة الجديدة إلى القيمة المرجعة
     updateClient,
     deleteClient,
     getClient,
