@@ -37,6 +37,7 @@ export default defineConfig({
         cacheId: `loan-calculator-${pkg.version}`,
         // تفعيل تتبع التحليلات في وضع الأوفلاين
         offlineGoogleAnalytics: true,
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
       },
 
       devOptions: {
