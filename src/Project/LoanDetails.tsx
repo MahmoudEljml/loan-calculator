@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { LoanDetailsProps } from "./types";
+import type { LoanDetailsProps } from "@/types";
 import FAB from "@/components/FAB";
 import ArrowIcon from "@/components/icons/ArrowIcon";
 

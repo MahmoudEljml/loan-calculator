@@ -1,4 +1,4 @@
-import type { CurrentChipInformationProps } from "./types";
+import type { CurrentChipInformationProps } from "@/types";
 
 
 export default function CurrentChipInformation({ currentTier }: CurrentChipInformationProps) {
