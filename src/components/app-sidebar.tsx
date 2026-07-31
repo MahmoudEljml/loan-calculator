@@ -15,7 +15,7 @@ import {
   SidebarSeparator,
   useSidebar,
 } from "./ui/sidebar"
-import { paths } from "@/pages/paths"
+import { paths } from "@/routes/paths"
 // 1. استيراد ملف الباكج لجلب رقم الإصدار
 import pkg from '../../package.json'
 

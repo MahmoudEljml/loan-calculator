@@ -15,7 +15,7 @@ import { IScoreCodesPage } from '@/features/iscore/pages/IscoreCodesPage.tsx';
 import { LoanCalculatorPage } from '@/features/calculator/pages/LoanCalculatorPage.tsx';
 import { InstallmentsPage } from '@/features/installments/pages/InstallmentsPage.tsx';
 import { EditInstallmentPage } from '@/features/installments/pages/EditInstallmentPage.tsx';
-import { paths } from './pages/paths.ts';
+import { paths } from '@/routes/paths.ts';
 import './App.css';
 import ShareDialog from '@/components/Dialog.tsx';
 import { Toaster } from '@/components/ui/sonner.tsx';
