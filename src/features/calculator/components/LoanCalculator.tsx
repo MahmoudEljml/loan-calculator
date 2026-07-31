@@ -325,6 +325,29 @@ function PartCalculate({
             if (intervalRef.current) clearInterval(intervalRef.current);
         };
     }, []);
+  
+    useEffect(() => {
+        const viewport = window.visualViewport;
+        if (!viewport) return;
+
+        const handleResize = () => {
+            // إذا عاد ارتفاع الشاشة للشبه كامل (أي تم إغلاق لوحة المفاتيح)
+            const isKeyboardClosed = viewport.height >= window.innerHeight - 100;
+
+            if (isKeyboardClosed && document.activeElement instanceof HTMLElement) {
+                document.activeElement.blur();
+            }
+        };
+
+        viewport.addEventListener("resize", handleResize);
+        return () => viewport.removeEventListener("resize", handleResize);
+    }, []);
+
+    const handleSliderInteraction = () => {
+        if (document.activeElement instanceof HTMLElement) {
+            document.activeElement.blur();
+        }
+    };
 
     return (
         <>
@@ -399,6 +422,7 @@ function PartCalculate({
                         max={MAX_AMOUNT}
                         step={STEP_AMOUNT}
                         value={amount}
+                        onPointerDown={handleSliderInteraction} // تضمن إغلاق الكيبورد فور لمس السلايدر
                         onChange={e => setAmount(Number(e.target.value))}
                         className="w-full cursor-pointer accent-primary"
                     />
@@ -477,6 +501,7 @@ function PartCalculate({
                     min="6"
                     max={currentTier?.maxMonths || 36}
                     value={months}
+                    onPointerDown={handleSliderInteraction} // تضمن إغلاق الكيبورد فور لمس السلايدر
                     onChange={e => setMonths(Number(e.target.value))}
                     className="w-full cursor-pointer accent-primary"
                 />
