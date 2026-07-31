@@ -42,6 +42,9 @@ export function InstallmentsPage() {
   const [showTotalAmount, setShowTotalAmount] = useState(false);
   const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
   const [bulkExtendScope, setBulkExtendScope] = useState<'all' | 'paid' | 'pending'>('paid');
+  
+  // New state for changing status to pending when extending
+  const [changeStatusToPending, setChangeStatusToPending] = useState(false);
 
   // تحديث الفلاتر عند تغييرها
   const [searchTerm, setSearchTerm] = useState(filters.searchTerm);
@@ -217,6 +220,9 @@ export function InstallmentsPage() {
         // نستخدم UTC لتجنب مشاكل التوقيت المحلي
         const newDate = new Date(Date.UTC(targetYear, targetMonth, day));
 
+        // Determine the new status based on the checkbox
+        const newStatus = changeStatusToPending ? 'pending' : installment.status;
+
         // استخدام دالة updateInstallment الموجودة
         await updateInstallment(installment.id, {
           clientCode: installment.clientCode,
@@ -229,7 +235,7 @@ export function InstallmentsPage() {
           clientImages: installment.clientImages,
           installmentAmount: installment.installmentAmount,
           dueDate: newDate.toISOString(),
-          status: installment.status,
+          status: newStatus, // Use the new status if checkbox is checked
           firstGuarantorName: installment.firstGuarantorName,
           firstGuarantorPhone: installment.firstGuarantorPhone,
           secondGuarantorName: installment.secondGuarantorName,
@@ -252,7 +258,8 @@ export function InstallmentsPage() {
       }
 
       const monthNames = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
-      toast.success(`تم ترحيل الاستحقاقات بنجاح إلى ${monthNames[targetMonth]} ${targetYear}`, {
+      const statusChangeMessage = changeStatusToPending ? ' وتغيير الحالة إلى قيد الانتظار' : '';
+      toast.success(`تم ترحيل الاستحقاقات بنجاح إلى ${monthNames[targetMonth]} ${targetYear}${statusChangeMessage}`, {
         id: 'bulk-extend-progress',
       });
       setBulkDialogOpen(false);
@@ -473,6 +480,21 @@ export function InstallmentsPage() {
                   <p className="font-medium">جميع الأقساط</p>
                   <p className="text-sm text-muted-foreground">سيتم ترحيل تاريخ الاستحقاق لجميع الأقساط في الجدول.</p>
                 </div>
+              </label>
+            </div>
+
+            {/* New checkbox for changing status to pending */}
+            <div className="flex items-center space-x-2 space-x-reverse py-2">
+              <input
+                type="checkbox"
+                id="change-status"
+                checked={changeStatusToPending}
+                onChange={(e) => setChangeStatusToPending(e.target.checked)}
+                className="h-4 w-4"
+                disabled={isBulkExtending}
+              />
+              <label htmlFor="change-status" className="text-sm font-medium cursor-pointer">
+                تغيير الحالة إلى قيد الانتظار
               </label>
             </div>
           </div>

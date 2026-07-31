@@ -167,14 +167,14 @@ export function ClientsPage() {
         )}
 
         <div className='flex flex-wrap justify-center gap-3 w-full '>
-          <div className='flex flex-wrap items-center gap-3'>
+          <div className='w-45 grid grid-cols-3 gap-3 flex'>
             {/* خانة السنة */}
             <Input
               type="number"
               placeholder="السنة"
               value={filterYear ?? ''}
               onChange={(e) => setFilterYear(e.target.value ? parseInt(e.target.value) : null)}
-              className="w-32"
+              className="w-full w-20"
             />
             {/* خانة الشهر */}
             <Input
@@ -184,7 +184,7 @@ export function ClientsPage() {
               max="12"
               value={filterMonth ?? ''}
               onChange={(e) => setFilterMonth(e.target.value ? parseInt(e.target.value) : null)}
-              className="w-28"
+              className="w-full w-20"
             />
             {/* خانة اليوم */}
             <Input
@@ -194,9 +194,10 @@ export function ClientsPage() {
               max="31"
               value={filterDay ?? ''}
               onChange={(e) => setFilterDay(e.target.value ? parseInt(e.target.value) : null)}
-              className="w-28"
+              className="w-full w-20"
             />
           </div>
+
 
           <div className='flex flex-wrap items-center gap-3'>
             {/* أزرار زيادة ونقصان اليوم */}
