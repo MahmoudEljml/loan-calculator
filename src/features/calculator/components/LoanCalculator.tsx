@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import LoanDetails from "./LoanDetails";
 // import MapComponent from "./Map";
-import { loanData } from "./Data";
+// import { loanData } from "./Data";
+import { loanData } from "@/Project/Data";
 import type { PartCalculateProps, RequiredDocumentsProps, ShareWhatsAppProps } from "@/types";
 import FAB from "@/components/FAB";
 import ArrowIcon from "@/components/icons/ArrowIcon";

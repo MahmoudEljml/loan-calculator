@@ -3,7 +3,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { MessageCircle, FileText, Settings, Eye, Edit2, Trash2, Phone, MapPin, Hash, CreditCard } from 'lucide-react';
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
-import type { Installment } from '@/hooks/useInstallmentsStorage';
+import type { Installment } from '@/features/installments/hooks/useInstallmentsStorage';
 
 interface InstallmentsTableProps {
   installments: Installment[];

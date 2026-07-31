@@ -1,4 +1,4 @@
-import MapComponent from '@/Project/Map';
+import MapComponent from '@/features/map/components/Map';
 import { useCallback, useMemo, useState } from "react";
 
 export function MapPage() {

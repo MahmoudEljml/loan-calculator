@@ -1,4 +1,5 @@
-import ProfessionalLoanCalculator from "../Project/LoanCalculator.tsx";
+// import ProfessionalLoanCalculator from "../Project/LoanCalculator.tsx";
+import ProfessionalLoanCalculator from "@/features/calculator/components/LoanCalculator.tsx";
 
 export function LoanCalculatorPage() {
   return (

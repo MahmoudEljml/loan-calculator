@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import geoJsonData from './Polygons/Dakahlia.json';
+// import geoJsonData from './Polygons/Dakahlia.json';
+import geoJsonData from "@/Project/Polygons/Dakahlia.json";
 import type { FeatureCollection } from 'geojson';
 import { Card } from '@/components/ui/card';
 import { MapPin, Check, Maximize2, Minimize2, Search, Crosshair } from 'lucide-react';

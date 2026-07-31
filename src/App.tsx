@@ -3,22 +3,23 @@ import { useEffect, useRef, useState } from 'react';
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { AppSidebar } from '@/components/app-sidebar.tsx';
 import { ModeToggle } from '@/components/mode-toggle.tsx';
-import PWABadge from './PWA/PWABadge.tsx';
-import InstallPWA from './PWA/InstallPWA.tsx';
+import PWABadge from '@/pwa/PWABadge.tsx';
+import InstallPWA from '@/pwa/InstallPWA.tsx';
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { ClientsPage } from './pages/ClientsPage.tsx';
-import { AddClientPage } from './pages/AddClientPage.tsx';
-import { ViewClientPage } from './pages/ViewClientPage.tsx';
-import { IScoreCodesPage } from './pages/IscoreCodesPage.tsx';
-import { LoanCalculatorPage } from './pages/LoanCalculatorPage.tsx';
-import { InstallmentsPage } from './pages/InstallmentsPage.tsx';
-import { EditInstallmentPage } from './pages/EditInstallmentPage.tsx';
+import { ClientsPage } from '@/features/clients/pages/ClientsPage.tsx';
+
+import { AddClientPage } from '@/features/clients/pages/AddClientPage.tsx';
+import { ViewClientPage } from '@/features/clients/pages/ViewClientPage.tsx';
+import { IScoreCodesPage } from '@/features/iscore/pages/IscoreCodesPage.tsx';
+import { LoanCalculatorPage } from '@/features/calculator/pages/LoanCalculatorPage.tsx';
+import { InstallmentsPage } from '@/features/installments/pages/InstallmentsPage.tsx';
+import { EditInstallmentPage } from '@/features/installments/pages/EditInstallmentPage.tsx';
 import { paths } from './pages/paths.ts';
 import './App.css';
 import ShareDialog from '@/components/Dialog.tsx';
 import { Toaster } from '@/components/ui/sonner.tsx';
-import { MapPage } from './pages/MapPage.tsx';
+import { MapPage } from '@/features/map/pages/MapPage.tsx';
 
 const STORAGE_KEY = 'loan-calculator-last-page';
 

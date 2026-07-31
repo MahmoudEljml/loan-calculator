@@ -1,7 +1,7 @@
 import React from 'react';
 import { Page, Text, View, Document, StyleSheet, Font } from '@react-pdf/renderer';
-import type { ClientData } from '../hooks/useClientsStorage';
-import cairoFont from '../assets/Cairo.ttf';
+import type { ClientData } from '@/features/clients/hooks/useClientsStorage';
+import cairoFont from '@/assets/Cairo.ttf';
 
 // تسجيل خط عربي (مثل Cairo) لضمان ظهور الحروف العربية بشكل صحيح وعدم تقطيعها
 Font.register({

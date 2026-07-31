@@ -4,12 +4,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useInstallmentsStorage } from '../hooks/useInstallmentsStorage';
 import { useExportImportInstallments } from '../hooks/useExportImportInstallments';
-import useLocalStorage from '../hooks/useLocalStorage';
+import useLocalStorage from '@/hooks/useLocalStorage';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Plus, Search, Download, Upload, ChevronDown, Lock, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { InstallmentsTable } from '@/components/InstallmentsTable';
-import { InstallmentNotesSheet } from '@/components/InstallmentNotesSheet';
+import { InstallmentsTable } from '@/features/installments/components/InstallmentsTable';
+import { InstallmentNotesSheet } from '@/features/installments/components/InstallmentNotesSheet';
 
 export function InstallmentsPage() {
   const navigate = useNavigate();

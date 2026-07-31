@@ -1,6 +1,6 @@
 import { useState } from "react";
-import iScoreData from "../Project/json/iscore_codes.json";
-
+// import iScoreData from "../Project/json/";
+import iScoreData from "@/features/iscore/data/iscore_codes.json";
 export function IScoreCodesPage() {
   const [searchTerm, setSearchTerm] = useState("");
 

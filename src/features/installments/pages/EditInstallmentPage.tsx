@@ -6,7 +6,7 @@ import { useInstallmentsStorage } from '../hooks/useInstallmentsStorage';
 import { ArrowRight, MessageSquare, X, Image as ImageIcon, MapPin, Hash, CreditCard, User, ShieldCheck, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { ImageViewer } from '@/components/ImageViewer';
-import { InstallmentNotesSheet } from '@/components/InstallmentNotesSheet';
+import { InstallmentNotesSheet } from '@/features/installments/components/InstallmentNotesSheet';
 
 export function EditInstallmentPage() {
   const navigate = useNavigate();

@@ -6,7 +6,7 @@ import { useClientsStorage } from '../hooks/useClientsStorage';
 import { useExportImportClients } from '../hooks/useExportImportClients';
 import { Plus, Trash2, Edit2, Eye, Download, Upload, Minus, X } from 'lucide-react';
 import { pdf } from '@react-pdf/renderer';
-import { ClientsPDF } from '@/components/ClientsPDF';
+import { ClientsPDF } from '@/features/clients/components/ClientsPDF';
 import FAB from '@/components/FAB';
 // دالة لتنسيق التاريخ
 const formatDate = (dateString: string) => {

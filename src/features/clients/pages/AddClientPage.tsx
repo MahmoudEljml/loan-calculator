@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import MapComponent from '@/Project/Map';
+import MapComponent from '@/features/map/components/Map';
 import { useClientsStorage, type ClientData } from '../hooks/useClientsStorage';
 import { ChevronRight, MapPin, X, Image as ImageIcon } from 'lucide-react';
 import useLocalStorage from '@/hooks/useLocalStorage';
