@@ -4,7 +4,7 @@ import LoanDetails from "./LoanDetails";
 import { loanData } from "./Data";
 import type { PartCalculateProps, RequiredDocumentsProps, ShareWhatsAppProps } from "./types";
 import FAB from "@/components/FAB";
-import ArrowIcon from "@/IconSVG/ArrowIcon";
+import ArrowIcon from "@/components/icons/ArrowIcon";
 // import CurrentChipInformation from "./CurrentChipInformation";
 import useLocalStorage from '@/hooks/useLocalStorage';
 

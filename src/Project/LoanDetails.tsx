@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { LoanDetailsProps } from "./types";
 import FAB from "@/components/FAB";
-import ArrowIcon from "../IconSVG/ArrowIcon";
+import ArrowIcon from "@/components/icons/ArrowIcon";
 
 export default function LoanDetails({ results, currentTier, amount }: LoanDetailsProps) {
     const [showDetails, setShowDetails] = useState(false);
