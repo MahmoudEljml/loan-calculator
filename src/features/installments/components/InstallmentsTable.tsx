@@ -1,9 +1,28 @@
 // src/components/InstallmentsTable.tsx
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { MessageCircle, FileText, Settings, Eye, Edit2, Trash2, Phone, MapPin, Hash, CreditCard } from 'lucide-react';
+import { MessageCircle, FileText, Settings, Eye, Edit2, Trash2, Phone, MapPin, Hash, CreditCard, Check } from 'lucide-react';
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import type { Installment } from '@/features/installments/hooks/useInstallmentsStorage';
+import useLocalStorage from '@/hooks/useLocalStorage';
+
+// Define available columns
+const AVAILABLE_COLUMNS = [
+  { id: 'image', label: 'الصورة' },
+  { id: 'code', label: 'كود العميل' },
+  { id: 'name', label: 'اسم العميل' },
+  { id: 'nationalId', label: 'الرقم القومي' },
+  { id: 'phone', label: 'رقم الهاتف' },
+  { id: 'address', label: 'العنوان' },
+  { id: 'amount', label: 'قيمة القسط' },
+  { id: 'status', label: 'الحالة' },
+  { id: 'actions', label: 'الإجراءات' },
+];
+
+// Default columns to show
+const DEFAULT_COLUMNS = ['image', 'code', 'name', 'nationalId', 'phone', 'address', 'amount', 'status', 'actions'];
 
 interface InstallmentsTableProps {
   installments: Installment[];
@@ -24,22 +43,111 @@ export const InstallmentsTable: React.FC<InstallmentsTableProps> = ({
   getStatusColor,
   getStatusLabel,
 }) => {
+  // Use useLocalStorage hook to manage visible columns
+  const [visibleColumns, setVisibleColumns] = useLocalStorage<string[]>('installmentsTableColumns', DEFAULT_COLUMNS);
+  const [isColumnDialogOpen, setIsColumnDialogOpen] = React.useState(false);
+
+  // Toggle column visibility
+  const toggleColumn = (columnId: string) => {
+    setVisibleColumns(prev => 
+      prev.includes(columnId) 
+        ? prev.filter(id => id !== columnId) 
+        : [...prev, columnId]
+    );
+  };
+
+  // Reset to default columns
+  const resetColumns = () => {
+    setVisibleColumns(DEFAULT_COLUMNS);
+  };
+
   return (
     <div>
+      {/* Column Customization Button */}
+      <div className="flex justify-end mb-4">
+        <Dialog open={isColumnDialogOpen} onOpenChange={setIsColumnDialogOpen}>
+          <DialogTrigger asChild>
+            <Button variant="outline" size="sm" className="gap-2">
+              <Settings className="w-4 h-4" />
+              <span className="hidden sm:inline">تخصيص الأعمدة</span>
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[425px] rounded-xl border-0 shadow-xl" dir="rtl">
+            <DialogHeader>
+              <DialogTitle className="text-right text-lg">تخصيص أعمدة الجدول</DialogTitle>
+            </DialogHeader>
+            <div className="py-4">
+              <div className="flex justify-between items-center mb-4">
+                <span className="text-sm text-muted-foreground">حدد الأعمدة التي تريد عرضها</span>
+                <Button variant="ghost" size="sm" onClick={resetColumns}>
+                  إعادة تعيين
+                </Button>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                {AVAILABLE_COLUMNS.map(column => (
+                  <div key={column.id} className="flex items-center space-x-2 space-x-reverse">
+                    <Checkbox 
+                      id={`column-${column.id}`}
+                      checked={visibleColumns.includes(column.id)}
+                      onCheckedChange={() => toggleColumn(column.id)}
+                    />
+                    <Label 
+                      htmlFor={`column-${column.id}`} 
+                      className="cursor-pointer text-sm font-normal"
+                    >
+                      {column.label}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 mt-4">
+              <DialogClose asChild>
+                <Button variant="outline">إلغاء</Button>
+              </DialogClose>
+              <DialogClose asChild>
+                <Button onClick={() => setIsColumnDialogOpen(false)}>
+                  <Check className="w-4 h-4 mr-2" />
+                  تطبيق
+                </Button>
+              </DialogClose>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+
       {/* Desktop Table View */}
       <div className="hidden sm:block">
         <table className="w-full text-sm">
           <thead className="bg-muted/50 border-b">
             <tr>
-              <th className="px-4 py-4 text-right font-semibold text-muted-foreground">الصورة</th>
-              <th className="px-4 py-4 text-right font-semibold text-muted-foreground">كود العميل</th>
-              <th className="px-4 py-4 text-right font-semibold text-muted-foreground">اسم العميل</th>
-              <th className="px-4 py-4 text-right font-semibold text-muted-foreground">الرقم القومي</th> {/* 🆕 عمود الرقم القومي للكمبيوتر */}
-              <th className="px-4 py-4 text-right font-semibold text-muted-foreground">رقم الهاتف</th>
-              <th className="px-4 py-4 text-right font-semibold text-muted-foreground">العنوان</th>
-              <th className="px-4 py-4 text-right font-semibold text-muted-foreground">قيمة القسط</th>
-              <th className="px-4 py-4 text-right font-semibold text-muted-foreground">الحالة</th>
-              <th className="px-4 py-4 text-center font-semibold text-muted-foreground">الإجراءات</th>
+              {visibleColumns.includes('image') && (
+                <th className="px-4 py-4 text-right font-semibold text-muted-foreground">الصورة</th>
+              )}
+              {visibleColumns.includes('code') && (
+                <th className="px-4 py-4 text-right font-semibold text-muted-foreground">كود العميل</th>
+              )}
+              {visibleColumns.includes('name') && (
+                <th className="px-4 py-4 text-right font-semibold text-muted-foreground">اسم العميل</th>
+              )}
+              {visibleColumns.includes('nationalId') && (
+                <th className="px-4 py-4 text-right font-semibold text-muted-foreground">الرقم القومي</th>
+              )}
+              {visibleColumns.includes('phone') && (
+                <th className="px-4 py-4 text-right font-semibold text-muted-foreground">رقم الهاتف</th>
+              )}
+              {visibleColumns.includes('address') && (
+                <th className="px-4 py-4 text-right font-semibold text-muted-foreground">العنوان</th>
+              )}
+              {visibleColumns.includes('amount') && (
+                <th className="px-4 py-4 text-right font-semibold text-muted-foreground">قيمة القسط</th>
+              )}
+              {visibleColumns.includes('status') && (
+                <th className="px-4 py-4 text-right font-semibold text-muted-foreground">الحالة</th>
+              )}
+              {visibleColumns.includes('actions') && (
+                <th className="px-4 py-4 text-center font-semibold text-muted-foreground">الإجراءات</th>
+              )}
             </tr>
           </thead>
           <tbody>
@@ -51,158 +159,173 @@ export const InstallmentsTable: React.FC<InstallmentsTableProps> = ({
                 }`}
                 onClick={() => onClientClick(installment.id)}
               >
-                <td className="px-4 py-3">
-                  {installment.clientImages.length > 0 ? (
-                    <div className="flex gap-1">
-                      <img
-                        src={installment.clientImages[0]}
-                        alt="صورة العميل"
-                        className="w-10 h-10 object-cover rounded-lg shadow-sm"
-                        title={`${installment.clientImages.length} صورة`}
-                      />
-                      {installment.clientImages.length > 1 && (
-                        <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center text-xs font-semibold">
-                          +{installment.clientImages.length - 1}
-                        </div>
+                {visibleColumns.includes('image') && (
+                  <td className="px-4 py-3">
+                    {installment.clientImages.length > 0 ? (
+                      <div className="flex gap-1">
+                        <img
+                          src={installment.clientImages[0]}
+                          alt="صورة العميل"
+                          className="w-10 h-10 object-cover rounded-lg shadow-sm"
+                          title={`${installment.clientImages.length} صورة`}
+                        />
+                        {installment.clientImages.length > 1 && (
+                          <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center text-xs font-semibold">
+                            +{installment.clientImages.length - 1}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
+                    )}
+                  </td>
+                )}
+                {visibleColumns.includes('code') && (
+                  <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
+                    {installment.clientCode ? `#${installment.clientCode}` : '-'}
+                  </td>
+                )}
+                {visibleColumns.includes('name') && (
+                  <td className="px-4 py-3 font-medium">{installment.clientName || '-'}</td>
+                )}
+                {visibleColumns.includes('nationalId') && (
+                  <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
+                    {installment.nationalId || '-'}
+                  </td>
+                )}
+                {visibleColumns.includes('phone') && (
+                  <td className="px-4 py-3" dir="ltr">{installment.clientPhone || '-'}</td>
+                )}
+                {visibleColumns.includes('address') && (
+                  <td className="px-4 py-3 text-muted-foreground max-w-[150px] truncate">
+                    <div className="flex items-center gap-1">
+                      <MapPin className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                      <span className="truncate" title={installment.address}>
+                        {installment.address || 'غير محدد'}
+                      </span>
+                      {installment.latitude && installment.longitude && (
+                        <span className="inline-block w-2 h-2 rounded-full bg-green-500 shrink-0" title="موقع GPS متوفر" />
                       )}
                     </div>
-                  ) : (
-                    <span className="text-muted-foreground">-</span>
-                  )}
-                </td>
-                <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
-                  {installment.clientCode ? `#${installment.clientCode}` : '-'}
-                </td>
-                <td className="px-4 py-3 font-medium">{installment.clientName || '-'}</td>
-                
-                {/* 🆕 خلية الرقم القومي للكمبيوتر */}
-                <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
-                  {installment.nationalId || '-'}
-                </td>
-
-                <td className="px-4 py-3" dir="ltr">{installment.clientPhone || '-'}</td>
-                <td className="px-4 py-3 text-muted-foreground max-w-[150px] truncate">
-                  <div className="flex items-center gap-1">
-                    <MapPin className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                    <span className="truncate" title={installment.address}>
-                      {installment.address || 'غير محدد'}
+                  </td>
+                )}
+                {visibleColumns.includes('amount') && (
+                  <td className="px-4 py-3 font-bold text-primary">{installment.installmentAmount} ج.م</td>
+                )}
+                {visibleColumns.includes('status') && (
+                  <td className="px-4 py-3">
+                    <span className={`px-3 py-1.5 rounded-md text-xs font-semibold ${getStatusColor(installment.status)}`}>
+                      {getStatusLabel(installment.status)}
                     </span>
-                    {installment.latitude && installment.longitude && (
-                      <span className="inline-block w-2 h-2 rounded-full bg-green-500 shrink-0" title="موقع GPS متوفر" />
-                    )}
-                  </div>
-                </td>
-                <td className="px-4 py-3 font-bold text-primary">{installment.installmentAmount} ج.م</td>
-                <td className="px-4 py-3">
-                  <span className={`px-3 py-1.5 rounded-md text-xs font-semibold ${getStatusColor(installment.status)}`}>
-                    {getStatusLabel(installment.status)}
-                  </span>
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex gap-2 justify-center items-center">
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onClientClick(installment.id);
-                        onActionClick(installment.id, 'notes');
-                      }}
-                      className="gap-1.5 text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/30 dark:text-blue-400 bg-transparent border shadow-sm"
-                      title="الملاحظات"
-                    >
-                      <FileText className="w-4 h-4" />
-                      <span className="hidden sm:inline font-medium">
-                        الملاحظات ({installment.notes.length})
-                      </span>
-                    </Button>
+                  </td>
+                )}
+                {visibleColumns.includes('actions') && (
+                  <td className="px-4 py-3">
+                    <div className="flex gap-2 justify-center items-center">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onClientClick(installment.id);
+                          onActionClick(installment.id, 'notes');
+                        }}
+                        className="gap-1.5 text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/30 dark:text-blue-400 bg-transparent border shadow-sm"
+                        title="الملاحظات"
+                      >
+                        <FileText className="w-4 h-4" />
+                        <span className="hidden sm:inline font-medium">
+                          الملاحظات ({installment.notes.length})
+                        </span>
+                      </Button>
 
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={(e) => e.stopPropagation()}
-                          className="gap-1.5 shadow-sm"
-                          title="الإجراءات"
-                        >
-                          <Settings className="w-4 h-4" />
-                          <span className="hidden sm:inline font-medium">الإجراءات</span>
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="sm:max-w-[420px] rounded-xl border-0 shadow-xl" dir="rtl">
-                        <DialogHeader>
-                          <DialogTitle className="text-right text-lg">إجراءات القسط</DialogTitle>
-                        </DialogHeader>
-                        <div className="flex flex-col gap-2.5 py-3">
-                          <DialogClose asChild>
-                            <Button
-                              variant="outline"
-                              className="justify-start gap-3 h-12 border-green-200 bg-green-50 text-green-700 hover:bg-green-100 hover:text-green-800 dark:bg-green-900/20 dark:border-green-800 dark:text-green-400 font-medium"
-                              onClick={() => onWhatsAppClick(installment.clientPhone)}
-                            >
-                              <MessageCircle className="w-5 h-5" />
-                              مراسلة عبر واتساب
-                            </Button>
-                          </DialogClose>
-                          <DialogClose asChild>
-                            <Button
-                              variant="outline"
-                              className="justify-start gap-3 h-12 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-900/30"
-                              onClick={() => window.location.href = `tel:${installment.clientPhone}`}
-                            >
-                              <Phone className="w-5 h-5" />
-                              اتصال هاتفي بالعميل
-                            </Button>
-                          </DialogClose>
-                          
-                          {installment.latitude && installment.longitude && (
-                            <Button
-                              variant="outline"
-                              className="justify-start gap-3 h-12 border-blue-200 bg-blue-50/50 text-blue-700 hover:bg-blue-100"
-                              onClick={() => window.open(`https://www.google.com/maps?q=${installment.latitude},${installment.longitude}`, '_blank')}
-                            >
-                              <MapPin className="w-5 h-5 text-blue-600" />
-                              عرض الموقع على الخريطة
-                            </Button>
-                          )}
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={(e) => e.stopPropagation()}
+                            className="gap-1.5 shadow-sm"
+                            title="الإجراءات"
+                          >
+                            <Settings className="w-4 h-4" />
+                            <span className="hidden sm:inline font-medium">الإجراءات</span>
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-[420px] rounded-xl border-0 shadow-xl" dir="rtl">
+                          <DialogHeader>
+                            <DialogTitle className="text-right text-lg">إجراءات القسط</DialogTitle>
+                          </DialogHeader>
+                          <div className="flex flex-col gap-2.5 py-3">
+                            <DialogClose asChild>
+                              <Button
+                                variant="outline"
+                                className="justify-start gap-3 h-12 border-green-200 bg-green-50 text-green-700 hover:bg-green-100 hover:text-green-800 dark:bg-green-900/20 dark:border-green-800 dark:text-green-400 font-medium"
+                                onClick={() => onWhatsAppClick(installment.clientPhone)}
+                              >
+                                <MessageCircle className="w-5 h-5" />
+                                مراسلة عبر واتساب
+                              </Button>
+                            </DialogClose>
+                            <DialogClose asChild>
+                              <Button
+                                variant="outline"
+                                className="justify-start gap-3 h-12 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-900/30"
+                                onClick={() => window.location.href = `tel:${installment.clientPhone}`}
+                              >
+                                <Phone className="w-5 h-5" />
+                                اتصال هاتفي بالعميل
+                              </Button>
+                            </DialogClose>
+                            
+                            {installment.latitude && installment.longitude && (
+                              <Button
+                                variant="outline"
+                                className="justify-start gap-3 h-12 border-blue-200 bg-blue-50/50 text-blue-700 hover:bg-blue-100"
+                                onClick={() => window.open(`https://www.google.com/maps?q=${installment.latitude},${installment.longitude}`, '_blank')}
+                              >
+                                <MapPin className="w-5 h-5 text-blue-600" />
+                                عرض الموقع على الخريطة
+                              </Button>
+                            )}
 
-                          <DialogClose asChild>
-                            <Button
-                              variant="outline"
-                              className="justify-start gap-3 h-12"
-                              onClick={() => onActionClick(installment.id, 'view')}
-                            >
-                              <Eye className="w-5 h-5 text-gray-500" />
-                              عرض التفاصيل
-                            </Button>
-                          </DialogClose>
-                          <DialogClose asChild>
-                            <Button
-                              variant="outline"
-                              className="justify-start gap-3 h-12"
-                              onClick={() => onActionClick(installment.id, 'edit')}
-                            >
-                              <Edit2 className="w-5 h-5 text-orange-500" />
-                              تعديل البيانات
-                            </Button>
-                          </DialogClose>
-                          <div className="border-t my-1"></div>
-                          <DialogClose asChild>
-                            <Button
-                              variant="ghost"
-                              className="justify-start gap-3 h-12 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
-                              onClick={() => onActionClick(installment.id, 'delete')}
-                            >
-                              <Trash2 className="w-5 h-5" />
-                              حذف القسط
-                            </Button>
-                          </DialogClose>
-                        </div>
-                      </DialogContent>
-                    </Dialog>
-                  </div>
-                </td>
+                            <DialogClose asChild>
+                              <Button
+                                variant="outline"
+                                className="justify-start gap-3 h-12"
+                                onClick={() => onActionClick(installment.id, 'view')}
+                              >
+                                <Eye className="w-5 h-5 text-gray-500" />
+                                عرض التفاصيل
+                              </Button>
+                            </DialogClose>
+                            <DialogClose asChild>
+                              <Button
+                                variant="outline"
+                                className="justify-start gap-3 h-12"
+                                onClick={() => onActionClick(installment.id, 'edit')}
+                              >
+                                <Edit2 className="w-5 h-5 text-orange-500" />
+                                تعديل البيانات
+                              </Button>
+                            </DialogClose>
+                            <div className="border-t my-1"></div>
+                            <DialogClose asChild>
+                              <Button
+                                variant="ghost"
+                                className="justify-start gap-3 h-12 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                onClick={() => onActionClick(installment.id, 'delete')}
+                              >
+                                <Trash2 className="w-5 h-5" />
+                                حذف القسط
+                              </Button>
+                            </DialogClose>
+                          </div>
+                        </DialogContent>
+                      </Dialog>
+                    </div>
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
@@ -222,126 +345,135 @@ export const InstallmentsTable: React.FC<InstallmentsTableProps> = ({
             <div className="space-y-4">
               <div className="flex gap-3 items-start justify-between">
                 <div className="flex-1">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    {installment.clientCode && (
-                      <span className="inline-flex items-center gap-0.5 bg-muted px-1.5 py-0.5 rounded text-[10px] font-mono font-medium text-muted-foreground">
-                        <Hash className="w-2.5 h-2.5" />
-                        {installment.clientCode}
-                      </span>
-                    )}
+                  {visibleColumns.includes('code') && installment.clientCode && (
+                    <span className="inline-flex items-center gap-0.5 bg-muted px-1.5 py-0.5 rounded text-[10px] font-mono font-medium text-muted-foreground">
+                      <Hash className="w-2.5 h-2.5" />
+                      {installment.clientCode}
+                    </span>
+                  )}
+                  {visibleColumns.includes('name') && (
                     <p className="font-bold text-lg">{installment.clientName || 'غير محدد'}</p>
-                  </div>
+                  )}
                   
-                  {/* 🆕 إضافة الرقم القومي تحت الاسم في واجهة الموبايل */}
-                  {installment.nationalId && (
+                  {visibleColumns.includes('nationalId') && installment.nationalId && (
                     <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1 font-mono">
                       <CreditCard className="w-3 h-3 text-muted-foreground shrink-0" />
                       <span>{installment.nationalId}</span>
                     </p>
                   )}
 
-                  <p className="text-muted-foreground text-sm mt-1" dir="ltr">{installment.clientPhone}</p>
+                  {visibleColumns.includes('phone') && (
+                    <p className="text-muted-foreground text-sm mt-1" dir="ltr">{installment.clientPhone}</p>
+                  )}
                   
-                  <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1.5">
-                    <MapPin className="w-3 h-3 text-orange-500 shrink-0" />
-                    <span>{installment.address || 'العنوان غير مسجل'}</span>
-                  </p>
+                  {visibleColumns.includes('address') && (
+                    <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1.5">
+                      <MapPin className="w-3 h-3 text-orange-500 shrink-0" />
+                      <span>{installment.address || 'العنوان غير مسجل'}</span>
+                    </p>
+                  )}
                 </div>
-                <span className={`px-3 py-1.5 rounded-md text-xs font-bold shadow-sm ${getStatusColor(installment.status)}`}>
-                  {getStatusLabel(installment.status)}
-                </span>
+                {visibleColumns.includes('status') && (
+                  <span className={`px-3 py-1.5 rounded-md text-xs font-bold shadow-sm ${getStatusColor(installment.status)}`}>
+                    {getStatusLabel(installment.status)}
+                  </span>
+                )}
               </div>
 
-              <div className="flex justify-between items-center text-sm border-t border-b py-3 my-3">
-                <div>
-                  <span className="text-muted-foreground block text-xs">قيمة القسط</span>
-                  <span className="font-bold text-primary">{installment.installmentAmount} ج.م</span>
+              {visibleColumns.includes('amount') && (
+                <div className="flex justify-between items-center text-sm border-t border-b py-3 my-3">
+                  <div>
+                    <span className="text-muted-foreground block text-xs">قيمة القسط</span>
+                    <span className="font-bold text-primary">{installment.installmentAmount} ج.م</span>
+                  </div>
+                  <div className="text-left">
+                    <span className="text-muted-foreground block text-xs">تاريخ الاستحقاق</span>
+                    <span className="font-medium">{new Date(installment.dueDate).toLocaleDateString('ar-EG')}</span>
+                  </div>
                 </div>
-                <div className="text-left">
-                  <span className="text-muted-foreground block text-xs">تاريخ الاستحقاق</span>
-                  <span className="font-medium">{new Date(installment.dueDate).toLocaleDateString('ar-EG')}</span>
+              )}
+
+              {visibleColumns.includes('actions') && (
+                <div className="flex gap-3 pt-1 flex-wrap">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onClientClick(installment.id);
+                      onActionClick(installment.id, 'notes');
+                    }}
+                    className="flex-1 gap-2 text-sm bg-transparent border shadow-sm text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/30"
+                  >
+                    <FileText className="w-4 h-4" />
+                    ملاحظات ({installment.notes.length})
+                  </Button>
+
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" size="sm" onClick={(e) => e.stopPropagation()} className="flex-1 gap-2 text-sm shadow-sm">
+                        <Settings className="w-4 h-4" />
+                        الإجراءات
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[400px] w-[92%] rounded-2xl py-10" dir="rtl">
+                      <DialogHeader>
+                        <DialogTitle className="text-right text-lg">{installment.clientName}</DialogTitle>
+                      </DialogHeader>
+                      <div className="flex flex-col gap-2.5 py-2">
+                        <DialogClose asChild>
+                          <Button
+                            variant="outline"
+                            className="justify-start gap-3 h-12 border-green-200 bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-900/20 dark:border-green-800 dark:text-green-400 font-medium"
+                            onClick={() => onWhatsAppClick(installment.clientPhone)}
+                          >
+                            <MessageCircle className="w-5 h-5" />
+                            مراسلة عبر واتساب
+                          </Button>
+                        </DialogClose>
+                        <DialogClose asChild>
+                          <Button variant="outline" className="justify-start gap-3 h-12 hover:bg-blue-50 hover:text-blue-700" onClick={() => window.location.href = `tel:${installment.clientPhone}`}>
+                            <Phone className="w-5 h-5" />
+                            اتصال هاتفي
+                          </Button>
+                        </DialogClose>
+
+                        {installment.latitude && installment.longitude && (
+                          <Button
+                            variant="outline"
+                            className="justify-start gap-3 h-12 border-blue-200 bg-blue-50 text-blue-700"
+                            onClick={() => window.open(`https://www.google.com/maps?q=${installment.latitude},${installment.longitude}`, '_blank')}
+                          >
+                            <MapPin className="w-5 h-5 text-blue-500" />
+                            توجيه عبر الخريطة (GPS)
+                          </Button>
+                        )}
+
+                        <div className="border-t my-1"></div>
+                        <DialogClose asChild>
+                          <Button variant="outline" className="justify-start gap-3 h-12" onClick={() => onActionClick(installment.id, 'view')}>
+                            <Eye className="w-5 h-5 text-gray-500" />
+                            عرض البيانات
+                          </Button>
+                        </DialogClose>
+                        <DialogClose asChild>
+                          <Button variant="outline" className="justify-start gap-3 h-12" onClick={() => onActionClick(installment.id, 'edit')}>
+                            <Edit2 className="w-5 h-5 text-orange-500" />
+                            تعديل البيانات
+                          </Button>
+                        </DialogClose>
+                        <div className="border-t my-1"></div>
+                        <DialogClose asChild>
+                          <Button variant="destructive" className="justify-start gap-3 h-12 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20" onClick={() => onActionClick(installment.id, 'delete')}>
+                            <Trash2 className="w-5 h-5" />
+                            حذف القسط
+                          </Button>
+                        </DialogClose>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
                 </div>
-              </div>
-
-              <div className="flex gap-3 pt-1 flex-wrap">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onClientClick(installment.id);
-                    onActionClick(installment.id, 'notes');
-                  }}
-                  className="flex-1 gap-2 text-sm bg-transparent border shadow-sm text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/30"
-                >
-                  <FileText className="w-4 h-4" />
-                  ملاحظات ({installment.notes.length})
-                </Button>
-
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button variant="outline" size="sm" onClick={(e) => e.stopPropagation()} className="flex-1 gap-2 text-sm shadow-sm">
-                      <Settings className="w-4 h-4" />
-                      الإجراءات
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-[400px] w-[92%] rounded-2xl py-10" dir="rtl">
-                    <DialogHeader>
-                      <DialogTitle className="text-right text-lg">{installment.clientName}</DialogTitle>
-                    </DialogHeader>
-                    <div className="flex flex-col gap-2.5 py-2">
-                      <DialogClose asChild>
-                        <Button
-                          variant="outline"
-                          className="justify-start gap-3 h-12 border-green-200 bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-900/20 dark:border-green-800 dark:text-green-400 font-medium"
-                          onClick={() => onWhatsAppClick(installment.clientPhone)}
-                        >
-                          <MessageCircle className="w-5 h-5" />
-                          مراسلة عبر واتساب
-                        </Button>
-                      </DialogClose>
-                      <DialogClose asChild>
-                        <Button variant="outline" className="justify-start gap-3 h-12 hover:bg-blue-50 hover:text-blue-700" onClick={() => window.location.href = `tel:${installment.clientPhone}`}>
-                          <Phone className="w-5 h-5" />
-                          اتصال هاتفي
-                        </Button>
-                      </DialogClose>
-
-                      {installment.latitude && installment.longitude && (
-                        <Button
-                          variant="outline"
-                          className="justify-start gap-3 h-12 border-blue-200 bg-blue-50 text-blue-700"
-                          onClick={() => window.open(`https://www.google.com/maps?q=${installment.latitude},${installment.longitude}`, '_blank')}
-                        >
-                          <MapPin className="w-5 h-5 text-blue-500" />
-                          توجيه عبر الخريطة (GPS)
-                        </Button>
-                      )}
-
-                      <div className="border-t my-1"></div>
-                      <DialogClose asChild>
-                        <Button variant="outline" className="justify-start gap-3 h-12" onClick={() => onActionClick(installment.id, 'view')}>
-                          <Eye className="w-5 h-5 text-gray-500" />
-                          عرض البيانات
-                        </Button>
-                      </DialogClose>
-                      <DialogClose asChild>
-                        <Button variant="outline" className="justify-start gap-3 h-12" onClick={() => onActionClick(installment.id, 'edit')}>
-                          <Edit2 className="w-5 h-5 text-orange-500" />
-                          تعديل البيانات
-                        </Button>
-                      </DialogClose>
-                      <div className="border-t my-1"></div>
-                      <DialogClose asChild>
-                        <Button variant="destructive" className="justify-start gap-3 h-12 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20" onClick={() => onActionClick(installment.id, 'delete')}>
-                          <Trash2 className="w-5 h-5" />
-                          حذف القسط
-                        </Button>
-                      </DialogClose>
-                    </div>
-                  </DialogContent>
-                </Dialog>
-              </div>
+              )}
             </div>
           </div>
         ))}
