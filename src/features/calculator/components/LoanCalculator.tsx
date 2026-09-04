@@ -92,9 +92,9 @@ const ProfessionalLoanCalculator = () => {
     const [saveDialogOpen, setSaveDialogOpen] = useState(false);
     const [clientName, setClientName] = useState('');
     const [isSaving, setIsSaving] = useState(false);
-    const [interestRate, setInterestRate] = useState(loanData[0].interest);
+    const [customInterestRate, setCustomInterestRate] = useState<number | null>(null);
     const [interestDialogOpen, setInterestDialogOpen] = useState(false);
-    const [interestInput, setInterestInput] = useState(String(loanData[0].interest));
+    const [interestInput, setInterestInput] = useState('');
 
     // Effect for calculating loan details based on amount and months
     useEffect(() => {
@@ -107,6 +107,7 @@ const ProfessionalLoanCalculator = () => {
             // الحسابات
             const P = amount;
             const m = months;
+            const interestRate = customInterestRate ?? tier.interest;
             const totalInterest = P * (interestRate / 100) * (m / 12);
             const totalAmount = P + totalInterest;
             const adminFees = Math.round(P * (tier.fees / 100));
@@ -120,15 +121,9 @@ const ProfessionalLoanCalculator = () => {
                 insuranceFees
             });
         }
-    }, [amount, months, interestRate]);
+    }, [amount, months, customInterestRate]);
 
-    useEffect(() => {
-        const tier = loanData.find(t => amount >= t.min && amount <= t.max);
-        if (tier && tier.min !== currentTier?.min) {
-            setInterestRate(tier.interest);
-            setInterestInput(String(tier.interest));
-        }
-    }, [amount, currentTier?.min]);
+    const displayedInterestRate = customInterestRate ?? currentTier?.interest ?? loanData[0].interest;
 
     const formatWhatsAppMessage = () => {
         if (!results || !currentTier) return '';
@@ -138,7 +133,7 @@ const ProfessionalLoanCalculator = () => {
             `مدة السداد: ${months} شهر\n`;
 
         if (shareOptions.interest) {
-            message += `الفائدة السنوية: ${interestRate}%\n`;
+            message += `الفائدة السنوية: ${displayedInterestRate}%\n`;
         }
 
         if (shareOptions.monthlyPayment) {
@@ -192,14 +187,14 @@ const ProfessionalLoanCalculator = () => {
             return;
         }
 
-        setInterestRate(nextRate);
+        setCustomInterestRate(nextRate);
         setInterestDialogOpen(false);
     };
 
     const restoreInterestRate = () => {
         if (!currentTier) return;
 
-        setInterestRate(currentTier.interest);
+        setCustomInterestRate(null);
         setInterestInput(String(currentTier.interest));
     };
 
@@ -301,20 +296,20 @@ const ProfessionalLoanCalculator = () => {
 
                         <LoanDetails
                             results={results}
-                            currentTier={currentTier ? { ...currentTier, interest: interestRate } : null}
+                            currentTier={currentTier ? { ...currentTier, interest: displayedInterestRate } : null}
                             amount={amount}
                         />
 
                         {currentTier && (
                             <div className="mt-4 flex items-center justify-center gap-3 rounded-lg border border-border bg-muted/50 p-3">
-                                <span className="text-sm font-medium">الفائدة : {interestRate}%</span>
+                                <span className="text-sm font-medium">الفائدة : {displayedInterestRate}%</span>
                                 <span className="text-sm text-muted-foreground">الفعلية: {currentTier.interest}%</span>
                                 <Button
                                     type="button"
                                     variant="outline"
                                     size="sm"
                                     onClick={() => {
-                                        setInterestInput(String(interestRate));
+                                        setInterestInput(String(displayedInterestRate));
                                         setInterestDialogOpen(true);
                                     }}
                                 >
@@ -326,7 +321,7 @@ const ProfessionalLoanCalculator = () => {
                                     variant="outline"
                                     size="sm"
                                     onClick={restoreInterestRate}
-                                    disabled={interestRate === currentTier.interest}
+                                    disabled={customInterestRate === null}
                                 >
                                     <RotateCcw />
                                     عودة للأصل
