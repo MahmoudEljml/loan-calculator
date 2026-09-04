@@ -8,7 +8,7 @@ import FAB from "@/components/FAB";
 import ArrowIcon from "@/components/icons/ArrowIcon";
 // import CurrentChipInformation from "./CurrentChipInformation";
 import useLocalStorage from '@/hooks/useLocalStorage';
-import { CardHead } from "@/components/CardHead";
+
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { useClientsStorage } from "@/features/clients/hooks/useClientsStorage";
 import { toast } from "sonner";
 import { MessageCircle, Pencil, RotateCcw, Save } from "lucide-react";
+import { CardHead } from "@/components/cardHead";
 
 // عدد البطاقات: 1 عميل + 1 ضامن (≤30000) أو 1 عميل + 2 ضامن (>30000)
 const getCardCount = (amount: number) => amount > 30000 ? 3 : 2;

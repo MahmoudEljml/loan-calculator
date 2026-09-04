@@ -1,7 +1,8 @@
 import { useState } from "react";
 import type { LoanDetailsProps } from "@/types";
 import ArrowIcon from "@/components/icons/ArrowIcon";
-import { CardHead } from "@/components/CardHead";
+import { CardHead } from "@/components/cardHead";
+
 
 export default function LoanDetails({ results, currentTier, amount }: LoanDetailsProps) {
     const [showDetails, setShowDetails] = useState(false);
