@@ -10,6 +10,12 @@ import ArrowIcon from "@/components/icons/ArrowIcon";
 import useLocalStorage from '@/hooks/useLocalStorage';
 import { CardHead } from "@/components/CardHead";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { useClientsStorage } from "@/features/clients/hooks/useClientsStorage";
+import { toast } from "sonner";
+import { MessageCircle, Save } from "lucide-react";
 
 // عدد البطاقات: 1 عميل + 1 ضامن (≤30000) أو 1 عميل + 2 ضامن (>30000)
 const getCardCount = (amount: number) => amount > 30000 ? 3 : 2;
@@ -44,10 +50,18 @@ const getRequiredDocuments = (amount: number) => {
     return [...personalDocuments, ...guaranteeDocuments, ...otherDocuments, ...additionalDocuments];
 };
 
+/**
+ * Professional Loan Calculator Component
+ * A React component for calculating and managing professional loans with various features
+ * including WhatsApp sharing, client saving, and dynamic calculations based on loan tiers.
+ */
 const ProfessionalLoanCalculator = () => {
+    // State for loan amount and duration
     const [amount, setAmount] = useState(50000);
     const [months, setMonths] = useState(12);
+    // State for current loan tier information
     const [currentTier, setCurrentTier] = useState<typeof loanData[0] | null>(null);
+    // State for loan calculation results
     const [results, setResults] = useState<{
         monthlyPayment: number;
         totalInterest: number;
@@ -55,9 +69,12 @@ const ProfessionalLoanCalculator = () => {
         adminFees: number;
         insuranceFees: number; // Added insurance fees
     } | null>(null);
+    // State for toggling input visibility
     const [showAmountInput, setShowAmountInput] = useState(false);
     const [showMonthsInput, setShowMonthsInput] = useState(false);
+    // State for phone number using localStorage persistence
     const [phoneNumber, setPhoneNumber] = useLocalStorage<string>('loanPhoneNumber', '01');
+    // State for sharing options using localStorage persistence
     const [shareOptions, setShareOptions] = useLocalStorage('loanShareOptions', {
         monthlyPayment: true,
         // totalInterest: false,
@@ -68,13 +85,21 @@ const ProfessionalLoanCalculator = () => {
         iscore: false,
         documents: true
     });
+    // Client storage hook for saving client data
+    const { addClient } = useClientsStorage();
+    // State for save dialog
+    const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+    const [clientName, setClientName] = useState('');
+    const [isSaving, setIsSaving] = useState(false);
 
+    // Effect for calculating loan details based on amount and months
     useEffect(() => {
         const tier = loanData.find(t => amount >= t.min && amount <= t.max);
         if (tier) {
             setCurrentTier(tier);
             if (months > tier.maxMonths) setMonths(tier.maxMonths);
 
+            
             // الحسابات
             const P = amount;
             const m = months;
@@ -144,6 +169,61 @@ const ProfessionalLoanCalculator = () => {
         window.open(whatsappUrl, '_blank');
     };
 
+    const openWhatsApp = () => {
+        window.open(`https://wa.me/2${phoneNumber}`, '_blank');
+    };
+
+    const saveClient = async () => {
+        const name = clientName.trim();
+        if (!name) {
+            toast.error('يرجى كتابة اسم العميل');
+            return;
+        }
+
+        if (!navigator.geolocation) {
+            toast.error('المتصفح لا يدعم تحديد الموقع');
+            return;
+        }
+
+        setIsSaving(true);
+        navigator.geolocation.getCurrentPosition(
+            async ({ coords }) => {
+                try {
+                    await addClient({
+                        client_information: {
+                            full_name: { val: name, label: 'اسم مقدم الطلب' },
+                            phone_number: { val: phoneNumber, label: 'رقم الهاتف' },
+                        },
+                        business_details: {
+                            coordinates: {
+                                val: `${coords.latitude.toFixed(6)}, ${coords.longitude.toFixed(6)}`,
+                                label: 'إحداثيات خطوط الطول والعرض',
+                            },
+                            business_type: { val: '', label: 'نوع النشاط' },
+                            start_date: { val: '', label: 'تاريخ بدء النشاط' },
+                            address: { val: '', label: 'العنوان' },
+                            landmark: { val: '', label: 'علامة مميزة' },
+                        },
+                        clientImages: [],
+                    });
+                    setClientName('');
+                    setSaveDialogOpen(false);
+                    toast.success('تم حفظ بيانات العميل والموقع بنجاح');
+                } catch (error) {
+                    console.error('Failed to save client:', error);
+                    toast.error('حدث خطأ أثناء حفظ بيانات العميل');
+                } finally {
+                    setIsSaving(false);
+                }
+            },
+            () => {
+                setIsSaving(false);
+                toast.error('تعذر تحديد الموقع، يرجى السماح بالوصول إلى GPS');
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
+    };
+
     const validateAmount = (value: number) => {
         const tier = loanData.find(t => value >= t.min && value <= t.max);
         if (!tier) {
@@ -198,11 +278,41 @@ const ProfessionalLoanCalculator = () => {
                             shareOptions={shareOptions}
                             setShareOptions={setShareOptions}
                             shareOnWhatsApp={shareOnWhatsApp}
+                            openWhatsApp={openWhatsApp}
+                            onSaveClient={() => setSaveDialogOpen(true)}
                         />
 
                     </div>
                 )}
             </div>
+
+            <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
+                <DialogContent dir="rtl">
+                    <DialogHeader>
+                        <DialogTitle>حفظ بيانات العميل</DialogTitle>
+                        <DialogDescription>
+                            اكتب اسم العميل، وسيتم حفظه مع موقعك الحالي.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <Input
+                        autoFocus
+                        value={clientName}
+                        onChange={(event) => setClientName(event.target.value)}
+                        placeholder="اسم العميل"
+                        onKeyDown={(event) => {
+                            if (event.key === 'Enter') void saveClient();
+                        }}
+                    />
+                    <DialogFooter>
+                        <Button type="button" variant="outline" onClick={() => setSaveDialogOpen(false)} disabled={isSaving}>
+                            إلغاء
+                        </Button>
+                        <Button type="button" onClick={() => void saveClient()} disabled={isSaving}>
+                            {isSaving ? 'جارٍ الحفظ...' : 'موافق'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
         </div>
     );
@@ -575,8 +685,13 @@ function ShareWhatsApp({
     setPhoneNumber,
     shareOptions,
     setShareOptions,
-    shareOnWhatsApp
-}: ShareWhatsAppProps) {
+    shareOnWhatsApp,
+    openWhatsApp,
+    onSaveClient,
+}: ShareWhatsAppProps & {
+    openWhatsApp: () => void;
+    onSaveClient: () => void;
+}) {
 
     const [showDetails, setShowDetails] = useState(false);
     return (
@@ -644,6 +759,17 @@ function ShareWhatsApp({
                 </svg>
                 مشاركة عبر WhatsApp
             </button>
+
+            <div className="flex gap-2 mt-2">
+                <Button type="button" variant="outline" className="flex-1" onClick={openWhatsApp}>
+                    <MessageCircle />
+                    فتح واتساب
+                </Button>
+                <Button type="button" variant="outline" className="flex-1" onClick={onSaveClient}>
+                    <Save />
+                    حفظ البيانات
+                </Button>
+            </div>
         </CardHead>
     );
 }
