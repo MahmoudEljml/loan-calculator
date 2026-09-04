@@ -46,8 +46,8 @@ export default function LoanDetails({ results, currentTier, amount }: LoanDetail
             <div
                 className={` transition-all duration-500 ease-in-out overflow-hidden
                     ${showDetails
-                        ? 'max-h-[900px] opacity-100 mt-9 px-4'
-                        : 'max-h-0 opacity-0 py-0 my-0 px-4'
+                        ? 'max-h-[900px] opacity-100 mt-9 '
+                        : 'max-h-0 opacity-0 py-0 my-0 '
                     } `}
             >
                 <div className={`grid grid-cols-2 gap-4`}>
