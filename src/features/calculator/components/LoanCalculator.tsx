@@ -15,7 +15,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input";
 import { useClientsStorage } from "@/features/clients/hooks/useClientsStorage";
 import { toast } from "sonner";
-import { MessageCircle, Save } from "lucide-react";
+import { MessageCircle, Pencil, RotateCcw, Save } from "lucide-react";
 
 // عدد البطاقات: 1 عميل + 1 ضامن (≤30000) أو 1 عميل + 2 ضامن (>30000)
 const getCardCount = (amount: number) => amount > 30000 ? 3 : 2;
@@ -91,6 +91,9 @@ const ProfessionalLoanCalculator = () => {
     const [saveDialogOpen, setSaveDialogOpen] = useState(false);
     const [clientName, setClientName] = useState('');
     const [isSaving, setIsSaving] = useState(false);
+    const [interestRate, setInterestRate] = useState(loanData[0].interest);
+    const [interestDialogOpen, setInterestDialogOpen] = useState(false);
+    const [interestInput, setInterestInput] = useState(String(loanData[0].interest));
 
     // Effect for calculating loan details based on amount and months
     useEffect(() => {
@@ -99,11 +102,11 @@ const ProfessionalLoanCalculator = () => {
             setCurrentTier(tier);
             if (months > tier.maxMonths) setMonths(tier.maxMonths);
 
-            
+
             // الحسابات
             const P = amount;
             const m = months;
-            const totalInterest = P * (tier.interest / 100) * (m / 12);
+            const totalInterest = P * (interestRate / 100) * (m / 12);
             const totalAmount = P + totalInterest;
             const adminFees = Math.round(P * (tier.fees / 100));
             const insuranceFees = amount > 100000 ? 450 : 300; // Insurance fee calculation
@@ -116,7 +119,15 @@ const ProfessionalLoanCalculator = () => {
                 insuranceFees
             });
         }
-    }, [amount, months]);
+    }, [amount, months, interestRate]);
+
+    useEffect(() => {
+        const tier = loanData.find(t => amount >= t.min && amount <= t.max);
+        if (tier && tier.min !== currentTier?.min) {
+            setInterestRate(tier.interest);
+            setInterestInput(String(tier.interest));
+        }
+    }, [amount, currentTier?.min]);
 
     const formatWhatsAppMessage = () => {
         if (!results || !currentTier) return '';
@@ -126,7 +137,7 @@ const ProfessionalLoanCalculator = () => {
             `مدة السداد: ${months} شهر\n`;
 
         if (shareOptions.interest) {
-            message += `الفائدة السنوية: ${currentTier.interest}%\n`;
+            message += `الفائدة السنوية: ${interestRate}%\n`;
         }
 
         if (shareOptions.monthlyPayment) {
@@ -171,6 +182,24 @@ const ProfessionalLoanCalculator = () => {
 
     const openWhatsApp = () => {
         window.open(`https://wa.me/2${phoneNumber}`, '_blank');
+    };
+
+    const updateInterestRate = () => {
+        const nextRate = Number(interestInput);
+        if (!Number.isFinite(nextRate) || nextRate < 0 || nextRate > 100) {
+            toast.error('يرجى إدخال نسبة بين 0 و100');
+            return;
+        }
+
+        setInterestRate(nextRate);
+        setInterestDialogOpen(false);
+    };
+
+    const restoreInterestRate = () => {
+        if (!currentTier) return;
+
+        setInterestRate(currentTier.interest);
+        setInterestInput(String(currentTier.interest));
     };
 
     const saveClient = async () => {
@@ -269,7 +298,40 @@ const ProfessionalLoanCalculator = () => {
                 {results && (
                     <div className="">
 
-                        <LoanDetails results={results} currentTier={currentTier} amount={amount} />
+                        <LoanDetails
+                            results={results}
+                            currentTier={currentTier ? { ...currentTier, interest: interestRate } : null}
+                            amount={amount}
+                        />
+
+                        {currentTier && (
+                            <div className="mt-4 flex items-center justify-center gap-3 rounded-lg border border-border bg-muted/50 p-3">
+                                <span className="text-sm font-medium">الفائدة : {interestRate}%</span>
+                                <span className="text-sm text-muted-foreground">الفعلية: {currentTier.interest}%</span>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                        setInterestInput(String(interestRate));
+                                        setInterestDialogOpen(true);
+                                    }}
+                                >
+                                    <Pencil />
+                                    تعديل
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={restoreInterestRate}
+                                    disabled={interestRate === currentTier.interest}
+                                >
+                                    <RotateCcw />
+                                    عودة للأصل
+                                </Button>
+                            </div>
+                        )}
 
                         <RequiredDocuments amount={amount} />
                         <ShareWhatsApp
@@ -287,8 +349,8 @@ const ProfessionalLoanCalculator = () => {
             </div>
 
             <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
-                <DialogContent dir="rtl">
-                    <DialogHeader>
+                <DialogContent dir="rtl" className="text-right">
+                    <DialogHeader >
                         <DialogTitle>حفظ بيانات العميل</DialogTitle>
                         <DialogDescription>
                             اكتب اسم العميل، وسيتم حفظه مع موقعك الحالي.
@@ -303,12 +365,43 @@ const ProfessionalLoanCalculator = () => {
                             if (event.key === 'Enter') void saveClient();
                         }}
                     />
-                    <DialogFooter>
+                    <DialogFooter >
                         <Button type="button" variant="outline" onClick={() => setSaveDialogOpen(false)} disabled={isSaving}>
                             إلغاء
                         </Button>
                         <Button type="button" onClick={() => void saveClient()} disabled={isSaving}>
                             {isSaving ? 'جارٍ الحفظ...' : 'موافق'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={interestDialogOpen} onOpenChange={setInterestDialogOpen}>
+                <DialogContent dir="rtl">
+                    <DialogHeader>
+                        <DialogTitle>تعديل نسبة الفائدة</DialogTitle>
+                        <DialogDescription>
+                            النسبة الفعلية لهذه الشريحة هي {currentTier?.interest}%.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <Input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.01"
+                        value={interestInput}
+                        onChange={(event) => setInterestInput(event.target.value)}
+                        placeholder="نسبة الفائدة"
+                        onKeyDown={(event) => {
+                            if (event.key === 'Enter') updateInterestRate();
+                        }}
+                    />
+                    <DialogFooter>
+                        <Button type="button" variant="outline" onClick={() => setInterestDialogOpen(false)}>
+                            إلغاء
+                        </Button>
+                        <Button type="button" onClick={updateInterestRate}>
+                            موافق
                         </Button>
                     </DialogFooter>
                 </DialogContent>
