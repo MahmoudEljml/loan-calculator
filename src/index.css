@@ -9,7 +9,6 @@
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
-
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -26,75 +25,84 @@ body {
     --font-heading: var(--font-sans);
     --font-sans: 'Geist Variable', sans-serif;
   }
+
+  /* ألوان الوضع الفاتح (Light Mode) */
   :root {
-    --background: oklch(1 0 0);
-    --foreground: oklch(0.145 0 0);
-    --card: oklch(1 0 0);
-    --card-foreground: oklch(0.145 0 0);
-    --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.145 0 0);
-    --primary: oklch(0.205 0 0);
-    --primary-foreground: oklch(0.985 0 0);
-    --secondary: oklch(0.97 0 0);
-    --secondary-foreground: oklch(0.205 0 0);
-    --muted: oklch(0.97 0 0);
-    --muted-foreground: oklch(0.556 0 0);
-    --accent: oklch(0.97 0 0);
-    --accent-foreground: oklch(0.205 0 0);
-    --destructive: oklch(0.577 0.245 27.325);
-    --destructive-foreground: oklch(0.985 0 0);
-    --border: oklch(0.922 0 0);
-    --input: oklch(0.922 0 0);
-    --ring: oklch(0.708 0 0);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
+    --background: #FFF5F7;                 /* خلفية الصفحة فاتحة جداً وردية */
+    --foreground: #3A0519;                 /* نص عنابي داكن */
+    --card: #ffffff;                       /* بطاقات بيضاء */
+    --card-foreground: #3A0519;
+    --popover: #ffffff;
+    --popover-foreground: #3A0519;
+    --primary: #670D2F;                    /* لون رئيسي عنابي */
+    --primary-foreground: #FFF5F7;
+    --secondary: #EF88AD;                  /* لون ثانوي وردي */
+    --secondary-foreground: #3A0519;
+    --muted: #f7d6e0;
+    --muted-foreground: #A53860;
+    --accent: #EF88AD;
+    --accent-foreground: #3A0519;
+    --destructive: #d9381e;
+    --destructive-foreground: #ffffff;
+    --border: #EF88AD;
+    --input: #EF88AD;
+    --ring: #670D2F;
+    --chart-1: #670D2F;
+    --chart-2: #A53860;
+    --chart-3: #EF88AD;
+    --chart-4: #3A0519;
+    --chart-5: #21020e;
     --radius: 0.625rem;
-    --sidebar: oklch(0.985 0 0);
-    --sidebar-foreground: oklch(0.145 0 0);
-    --sidebar-primary: oklch(0.205 0 0);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.97 0 0);
-    --sidebar-accent-foreground: oklch(0.205 0 0);
-    --sidebar-border: oklch(0.922 0 0);
-    --sidebar-ring: oklch(0.708 0 0);
+
+    /* تخصيص لون الـ Sidebar في الوضع الفاتح (درجة عنابية داكنة ومميزة) */
+    --sidebar: #3A0519;                    
+    --sidebar-foreground: #FFF5F7;         
+    --sidebar-primary: #EF88AD;            
+    --sidebar-primary-foreground: #3A0519; 
+    --sidebar-accent: #670D2F;             
+    --sidebar-accent-foreground: #FFF5F7;  
+    --sidebar-border: #670D2F;             
+    --sidebar-ring: #EF88AD;               
   }
+
+  /* ألوان الوضع الداكن (Dark Mode) */
   .dark {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.922 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.704 0.191 22.216);
-    --destructive-foreground: oklch(0.985 0 0);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.556 0 0);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.488 0.243 264.376);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
-    --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.556 0 0);
+    --background: #3A0519;                 /* خلفية الصفحة عنابية داكنة */
+    --foreground: #FFF5F7;                 /* نص فاتح */
+    --card: #280311;                       /* بطاقات أغمق من الخلفية */
+    --card-foreground: #FFF5F7;
+    --popover: #280311;
+    --popover-foreground: #FFF5F7;
+    --primary: #EF88AD;                    /* لون رئيسي وردي مضيء */
+    --primary-foreground: #3A0519;
+    --secondary: #670D2F;
+    --secondary-foreground: #FFF5F7;
+    --muted: #670D2F;
+    --muted-foreground: #EF88AD;
+    --accent: #A53860;
+    --accent-foreground: #FFF5F7;
+    --destructive: #e65252;
+    --destructive-foreground: #ffffff;
+    --border: rgba(239, 136, 173, 0.3);
+    --input: rgba(239, 136, 173, 0.3);
+    --ring: #EF88AD;
+    --chart-1: #EF88AD;
+    --chart-2: #A53860;
+    --chart-3: #670D2F;
+    --chart-4: #3A0519;
+    --chart-5: #280311;
+
+    /* تخصيص لون الـ Sidebar في الوضع الداكن (لون أرجواني داكن جداً ومختلف) */
+    --sidebar: #1E020D;                    
+    --sidebar-foreground: #EF88AD;         
+    --sidebar-primary: #EF88AD;            
+    --sidebar-primary-foreground: #1E020D; 
+    --sidebar-accent: #3A0519;             
+    --sidebar-accent-foreground: #FFF5F7;  
+    --sidebar-border: rgba(239, 136, 173, 0.2); 
+    --sidebar-ring: #EF88AD;               
   }
+
   * {
     @apply border-border;
     outline-color: color-mix(in oklch, var(--ring) 50%, transparent);

@@ -8,7 +8,8 @@ import FAB from "@/components/FAB";
 import ArrowIcon from "@/components/icons/ArrowIcon";
 // import CurrentChipInformation from "./CurrentChipInformation";
 import useLocalStorage from '@/hooks/useLocalStorage';
-
+import { CardHead } from "@/components/CardHead";
+import { Checkbox } from "@/components/ui/checkbox";
 
 // عدد البطاقات: 1 عميل + 1 ضامن (≤30000) أو 1 عميل + 2 ضامن (>30000)
 const getCardCount = (amount: number) => amount > 30000 ? 3 : 2;
@@ -161,8 +162,8 @@ const ProfessionalLoanCalculator = () => {
 
     return (
         <div className="min-h-screen flex items-center justify-center font-sans bg-background text-foreground" dir="rtl">
-            {/* <div className="bg-white p-6 rounded-2xl shadow-lg w-full max-w-md mx-4"> */}
-            <div className="w-full max-w-xl relative bg-card rounded-2xl shadow-lg border border-border p-6 ">
+
+            <div className="w-full max-w-xl relative rounded-2xl shadow-lg p-6">
                 {/* <CurrentChipInformation currentTier={currentTier} /> */}
 
                 {/* <MapComponent
@@ -186,9 +187,10 @@ const ProfessionalLoanCalculator = () => {
                 />
 
                 {results && (
-                    <div className="bg-muted rounded-xl p-5 text-foreground border border-border">
+                    <div className="">
 
                         <LoanDetails results={results} currentTier={currentTier} amount={amount} />
+
                         <RequiredDocuments amount={amount} />
                         <ShareWhatsApp
                             phoneNumber={phoneNumber}
@@ -201,7 +203,7 @@ const ProfessionalLoanCalculator = () => {
                     </div>
                 )}
             </div>
-            {/* <a href="tel:+201000000000">اتصل بنا الآن</a> */}
+
         </div>
     );
 };
@@ -325,7 +327,7 @@ function PartCalculate({
             if (intervalRef.current) clearInterval(intervalRef.current);
         };
     }, []);
-  
+
     useEffect(() => {
         const viewport = window.visualViewport;
         if (!viewport) return;
@@ -351,9 +353,9 @@ function PartCalculate({
 
     return (
         <>
-            <div className="mb-6">
+            <div className="mb-20 ">
 
-                <div className="flex justify-between items-center mb-2">
+                <div className="flex justify-between items-center mb-2 ">
                     <div className="flex items-center">
                         <div onClick={() => setShowAmountInput(!showAmountInput)} className="cursor-pointer">
                             مبلغ القرض
@@ -366,7 +368,6 @@ function PartCalculate({
                             size={'small'}
                             icon={<ArrowIcon color="currentColor" size={20} className={`${showAmountInput ? 'rotate-180' : ''}  transition-transform duration-300`} />}
                         />
-
                     </div>
                     <b className="text-primary text-lg">{amount.toLocaleString()}</b>
                 </div>
@@ -398,8 +399,6 @@ function PartCalculate({
                         </button>
                     </div>
                 </div>
-
-
 
                 {/* Added Buttons Control Wrapper */}
                 <div className="flex items-center gap-2 mb-2">
@@ -517,30 +516,57 @@ function RequiredDocuments({ amount }: RequiredDocumentsProps) {
     const docs = getRequiredDocuments(amount);
     const cardCount = getCardCount(amount);
     const iscoreFees = getIScoreFees(amount);
+
+
+    const [showDetails, setShowDetails] = useState(false);
+
     return (
-        <>
-            {/* الأوراق المطلوبة */}
-            <div className="mt-6 border-t border-border pt-4">
-                <h3 className="text-lg font-bold mb-3">الأوراق المطلوبة:</h3>
-                <div className="space-y-2">
-                    {docs.map((doc, index) => (
+
+
+        <CardHead title={
+            <div className="flex items-center gap-2 bg-background px-2" onClick={() => setShowDetails(!showDetails)}>
+                <div>الأوراق المطلوبة</div>
+                <div onClick={() => setShowDetails(!showDetails)}>
+                    {<ArrowIcon color="currentColor" size={20} className={`${showDetails ? 'rotate-180' : ''}  transition-transform duration-300`} />}
+                </div>
+            </div>
+        }>
+            <div className={`space-y-2`}>
+                {/* العناصر الأولى تظهر دائماً */}
+                <div className={`space-y-2`}>
+                    {docs.slice(0, 2).map((doc, index) => (
                         <div key={index} className="flex items-start">
                             <span className="text-green-400 ml-2">•</span>
                             <span>{doc}</span>
                         </div>
                     ))}
                 </div>
-            </div>
 
-            {/* رسوم iScore */}
-            <div className="mt-4 border-t border-border pt-4">
-                <h3 className="text-lg font-bold mb-3">رسوم iScore:</h3>
-                <div className="flex items-start">
-                    <span className="text-green-400 ml-2">•</span>
-                    <span>{iscoreFees} ج.م ({cardCount} بطاقات × 40 ج.م)</span>
+                <div
+                    className={`space-y-2 overflow-hidden transition-all duration-500 ease-in-out ${showDetails
+                        ? 'max-h-[900px] opacity-100 mt-4'
+                        : 'max-h-0 opacity-0'
+                        } `}
+                >
+                    {docs.slice(2).map((doc, index) => (
+                        <div key={index} className="flex items-start">
+                            <span className="text-green-400 ml-2">•</span>
+                            <span>{doc}</span>
+                        </div>
+                    ))}
+                </div>
+
+                {/* رسوم iScore */}
+                <div className="mt-4 border-t border-border pt-4">
+                    <h3 className="text-lg font-bold mb-3">رسوم iScore:</h3>
+                    <div className="flex items-start">
+                        <span className="text-green-400 ml-2">•</span>
+                        <span>{iscoreFees} ج.م ({cardCount} بطاقات × 40 ج.م)</span>
+                    </div>
                 </div>
             </div>
-        </>
+        </CardHead >
+
     )
 }
 
@@ -552,11 +578,22 @@ function ShareWhatsApp({
     shareOnWhatsApp
 }: ShareWhatsAppProps) {
 
+    const [showDetails, setShowDetails] = useState(false);
     return (
-        <>
-            <div className="mt-6 border-t border-border pt-4">
-                <h3 className="text-lg font-bold mb-3">مشاركة عبر واتساب:</h3>
+
+        <CardHead title={
+            <div className="flex items-center gap-2 bg-background px-2" onClick={() => setShowDetails(!showDetails)}>
+                <div>مشاركة على واتساب</div>
+                <div onClick={() => setShowDetails(!showDetails)}>
+                    {<ArrowIcon color="currentColor" size={20} className={`${showDetails ? 'rotate-180' : ''}  transition-transform duration-300`} />}
+                </div>
             </div>
+        }>
+
+
+
+
+            {/* <CardHead title="مشاركة على واتساب"> */}
             <div className="mt-4">
                 <input
                     type="tel"
@@ -569,27 +606,31 @@ function ShareWhatsApp({
                 />
             </div>
 
-            <div className="mt-4 space-y-2">
-                {Object.entries(shareOptions).map(([key, value]) => (
-                    <label key={key} className="flex items-center text-sm">
-                        <input
-                            type="checkbox"
-                            checked={value}
-                            onChange={(e) => setShareOptions(prev => ({
-                                ...prev,
-                                [key]: e.target.checked
-                            }))}
-                            className="ml-2"
-                        />
-                        {key === 'monthlyPayment' && 'القسط الشهري'}
-                        {key === 'totalInterest' && 'إجمالي الفوائد'}
-                        {key === 'totalAmount' && 'إجمالي الاقساط'}
-                        {key === 'adminFees' && 'المصاريف الإدارية'}
-                        {key === 'interest' && 'الفائدة السنوية'}
-                        {key === 'iscore' && 'رسوم iScore'}
-                        {key === 'insuranceFees' && 'رسوم التأمين'}
-                        {key === 'documents' && 'الأوراق المطلوبة'}
 
+            <div className={`mt-4 space-y-2 transition-all duration-500 ease-in-out overflow-hidden ${showDetails
+                ? 'max-h-[900px] opacity-100 mt-5 px-4'
+                : 'max-h-0 opacity-0 py-0 my-0 px-4'
+                }`}>
+                {Object.entries(shareOptions).map(([key, value]) => (
+                    <label key={key} className="flex items-center gap-2 text-sm cursor-pointer">
+                        {/* Replaced input with Checkbox component */}
+                        <Checkbox
+                            checked={value}
+                            onCheckedChange={(checked) => setShareOptions(prev => ({
+                                ...prev,
+                                [key]: checked === true // Radix UI passes boolean or indeterminate state
+                            }))}
+                        />
+                        <span className="select-none">
+                            {key === 'monthlyPayment' && 'القسط الشهري'}
+                            {key === 'totalInterest' && 'إجمالي الفوائد'}
+                            {key === 'totalAmount' && 'إجمالي الاقساط'}
+                            {key === 'adminFees' && 'المصاريف الإدارية'}
+                            {key === 'interest' && 'الفائدة السنوية'}
+                            {key === 'iscore' && 'رسوم iScore'}
+                            {key === 'insuranceFees' && 'رسوم التأمين'}
+                            {key === 'documents' && 'الأوراق المطلوبة'}
+                        </span>
                     </label>
                 ))}
             </div>
@@ -603,8 +644,13 @@ function ShareWhatsApp({
                 </svg>
                 مشاركة عبر WhatsApp
             </button>
-        </>
+        </CardHead>
     );
 }
+
+
+
+
+
 
 export default ProfessionalLoanCalculator;

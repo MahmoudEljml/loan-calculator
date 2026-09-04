@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 interface ButtonProps {
-    text: string;
+    text?: string;
     icon?: React.ReactNode;
     size?: 'very-small' | 'small' | 'medium' | 'large';
     onClick?: () => void;
@@ -35,7 +35,7 @@ export default function FAB({
     }, [showText]);
 
     const sizeClasses = {
-        "very-small": 'w-6 h-6',
+        "very-small": 'w-8 h-8',
         small: 'w-10 h-10',
         medium: 'w-12 h-12',
         large: 'w-14 h-14'
