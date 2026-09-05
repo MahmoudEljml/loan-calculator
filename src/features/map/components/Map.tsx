@@ -87,6 +87,7 @@ export function MapComponent({
     const [isGettingLocation, setIsGettingLocation] = useState(false);
     const clickMarkerRef = useRef<L.Marker | null>(null);
     const mapContainerRef = useRef<HTMLDivElement>(null);
+    const markersLayerRef = useRef<L.LayerGroup | null>(null);
 
     // دالة للتعامل مع البحث عن كود Plus Code أو الإحداثيات الجغرافية
     const handleSearchPlusCode = () => {
@@ -425,29 +426,38 @@ export function MapComponent({
             );
         }
 
-        // إضافة العلامات المخصصة
-        markers.forEach(marker => {
-            const markerInstance = L.marker(marker.position)
-                .addTo(mapInstanceRef.current!)
-                .bindPopup(`
-                    <div class="text-right font-sans" dir="rtl">
-                        <h3 class="text-lg font-semibold text-gray-800 mb-2">${marker.title || ''}</h3>
-                        <p class="text-gray-600 text-sm">${marker.description || ''}</p>
-                    </div>
-                `);
-
-            markerInstance.on('mouseover', function (this: L.Marker) {
-                this.openPopup();
-            });
-        });
-
         return () => {
             if (mapInstanceRef.current) {
                 mapInstanceRef.current.remove();
                 mapInstanceRef.current = null;
             }
+            markersLayerRef.current = null;
         };
-    }, [showUserLocation, markers]);
+    }, [showUserLocation]);
+
+    // تحديث علامات الأقساط دون إعادة إنشاء الخريطة
+    useEffect(() => {
+        if (!mapInstanceRef.current) return;
+
+        markersLayerRef.current?.clearLayers();
+        markersLayerRef.current ??= L.layerGroup().addTo(mapInstanceRef.current);
+
+        markers.forEach((marker) => {
+            // const markerInstance =
+            L.marker(marker.position, { icon: installmentIcon })
+                .bindPopup(`
+                    <div class="text-right font-sans" dir="rtl">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-2">${marker.title || ''}</h3>
+                        <p class="text-gray-600 text-sm">${marker.description || ''}</p>
+                    </div>
+                `)
+                .addTo(markersLayerRef.current!);
+
+            // markerInstance.on('mouseover', function (this: L.Marker) {
+            //     this.openPopup();
+            // });
+        });
+    }, [markers]);
 
     return (
         <div ref={mapContainerRef} className={`relative w-full ${isFullscreen ? 'h-screen' : 'h-[400px]'}`}>
@@ -492,7 +502,7 @@ export function MapComponent({
             </Button>
 
             {selectedLocation && (
-                <Card className="absolute bottom-5 right-5 p-3 flex-row items-center gap-3 z-1 shadow-lg">
+                <Card className="absolute bottom-1 right-1 p-3 flex-row items-center gap-3 z-1 shadow-lg">
                     <MapPin className="w-5 h-5 text-gray-500" />
                     <span className="text-sm font-medium" dir='ltr'>
                         {selectedLocation.lat.toFixed(6)}, {selectedLocation.lng.toFixed(6)}
@@ -551,4 +561,27 @@ const positionIcon = L.divIcon({
     // Anchor the icon at the bottom tip so it points exactly to the location
     iconSize: [12, 12],
     className: 'click-marker'
+});
+
+const installmentIcon = L.divIcon({
+    html: `
+        <div style="
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            background: #2563eb;
+            border: 2px solid #ffffff;
+            border-radius: 50% 50% 50% 0;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+            transform: rotate(-45deg);
+        ">
+        </div>
+    `,
+    iconSize: [32, 32],
+    iconAnchor: [16, 32],
+    popupAnchor: [0, -32],
+    className: 'installment-marker',
 });
