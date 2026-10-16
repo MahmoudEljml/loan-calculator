@@ -10,6 +10,7 @@ import { Plus, Search, Download, Upload, ChevronDown, Lock, Trash2 } from 'lucid
 import { toast } from 'sonner';
 import { InstallmentsTable } from '@/features/installments/components/InstallmentsTable';
 import { InstallmentNotesSheet } from '@/features/installments/components/InstallmentNotesSheet';
+import { InstallmentActionsSheet } from '../components/InstallmentActionsSheet';
 
 export function InstallmentsPage() {
   const navigate = useNavigate();
@@ -17,7 +18,7 @@ export function InstallmentsPage() {
   const { exportInstallments, importInstallments } = useExportImportInstallments();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const tableRef = useRef<HTMLDivElement>(null);
-  
+
   // استخدام useLocalStorage hook لحفظ الفلاتر
   const [filters, setFilters] = useLocalStorage('loan_calculator_filters', {
     searchTerm: '',
@@ -42,7 +43,7 @@ export function InstallmentsPage() {
   const [showTotalAmount, setShowTotalAmount] = useState(false);
   const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
   const [bulkExtendScope, setBulkExtendScope] = useState<'all' | 'paid' | 'pending'>('paid');
-  
+
   // New state for changing status to pending when extending
   const [changeStatusToPending, setChangeStatusToPending] = useState(false);
 
@@ -56,14 +57,17 @@ export function InstallmentsPage() {
   const [targetYear, setTargetYear] = useState<number>(new Date().getFullYear());
   const [isBulkExtending, setIsBulkExtending] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  
+
   // New state for delete all data confirmation
   const [showDeleteAllDialog, setShowDeleteAllDialog] = useState(false);
 
   // Notes Sheet state
   const [notesSheetOpen, setNotesSheetOpen] = useState(false);
   const [selectedNotesInstallmentId, setSelectedNotesInstallmentId] = useState<string | null>(null);
-  
+
+  const [actionsSheetOpen, setActionsSheetOpen] = useState(false);
+  const [selectedActionsInstallmentId, setSelectedActionsInstallmentId] = useState<string | null>(null);
+
   // حفظ الفلاتر عند تغييرها
   useEffect(() => {
     const newFilters = {
@@ -164,7 +168,7 @@ export function InstallmentsPage() {
       toast.error('فشل في حذف القسط');
     }
   };
-  
+
   // New handler for deleting all data
   const handleDeleteAll = async () => {
     try {
@@ -523,7 +527,6 @@ export function InstallmentsPage() {
           installments={filteredInstallments}
           selectedClientId={selectedClientId}
           onClientClick={handleClientClick}
-          onWhatsAppClick={handleWhatsAppClick}
           onActionClick={(id, action) => {
             if (action === 'view') navigate(`/edit-installment?id=${id}&action=view`);
             if (action === 'edit') navigate(`/edit-installment?id=${id}&action=edit`);
@@ -531,6 +534,10 @@ export function InstallmentsPage() {
             if (action === 'notes') {
               setSelectedNotesInstallmentId(id);
               setNotesSheetOpen(true);
+            }
+            if (action === 'actions') {
+              setSelectedActionsInstallmentId(id);
+              setActionsSheetOpen(true);
             }
           }}
           getStatusColor={getStatusColor}
@@ -659,7 +666,7 @@ export function InstallmentsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      
+
       {/* Delete All Data Confirmation Dialog */}
       <Dialog open={showDeleteAllDialog} onOpenChange={setShowDeleteAllDialog}>
         <DialogContent className="sm:max-w-[425px] pt-12" dir="rtl">
@@ -777,6 +784,28 @@ export function InstallmentsPage() {
           }}
         />
       )}
+
+      {/* Actions Sheet */}
+      {selectedActionsInstallmentId && (
+        <InstallmentActionsSheet
+          open={actionsSheetOpen}
+          onOpenChange={setActionsSheetOpen}
+          installmentId={selectedActionsInstallmentId}
+          clientName={
+            installments.find(i => i.id === selectedActionsInstallmentId)?.clientName || ''
+          }
+          clientPhone={
+            installments.find(i => i.id === selectedActionsInstallmentId)?.clientPhone || ''
+          }
+          latitude={installments.find(i => i.id === selectedActionsInstallmentId)?.latitude}
+          longitude={installments.find(i => i.id === selectedActionsInstallmentId)?.longitude}
+          onWhatsAppClick={handleWhatsAppClick}
+          onView={(id) => navigate(`/edit-installment?id=${id}&action=view`)}
+          onEdit={(id) => navigate(`/edit-installment?id=${id}&action=edit`)}
+          onDelete={setDeleteId}
+        />
+      )}
+
     </div>
   );
 }

@@ -1,7 +1,7 @@
 // src/components/InstallmentsTable.tsx
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { MessageCircle, FileText, Settings, Eye, Edit2, Trash2, Phone, MapPin, Hash, CreditCard, Check } from 'lucide-react';
+import { FileText, Settings, MapPin, Hash, CreditCard, Check } from 'lucide-react';
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
@@ -28,8 +28,7 @@ interface InstallmentsTableProps {
   installments: Installment[];
   selectedClientId: string | null;
   onClientClick: (id: string) => void;
-  onWhatsAppClick: (phone: string) => void;
-  onActionClick: (id: string, action: 'view' | 'edit' | 'delete' | 'notes') => void;
+  onActionClick: (id: string, action: 'view' | 'edit' | 'delete' | 'notes' | 'actions') => void;
   getStatusColor: (status: 'pending' | 'paid') => string;
   getStatusLabel: (status: 'pending' | 'paid') => string;
 }
@@ -38,7 +37,6 @@ export const InstallmentsTable: React.FC<InstallmentsTableProps> = ({
   installments,
   selectedClientId,
   onClientClick,
-  onWhatsAppClick,
   onActionClick,
   getStatusColor,
   getStatusLabel,
@@ -49,9 +47,9 @@ export const InstallmentsTable: React.FC<InstallmentsTableProps> = ({
 
   // Toggle column visibility
   const toggleColumn = (columnId: string) => {
-    setVisibleColumns(prev => 
-      prev.includes(columnId) 
-        ? prev.filter(id => id !== columnId) 
+    setVisibleColumns(prev =>
+      prev.includes(columnId)
+        ? prev.filter(id => id !== columnId)
         : [...prev, columnId]
     );
   };
@@ -86,13 +84,13 @@ export const InstallmentsTable: React.FC<InstallmentsTableProps> = ({
               <div className="grid grid-cols-2 gap-3">
                 {AVAILABLE_COLUMNS.map(column => (
                   <div key={column.id} className="flex items-center space-x-2 space-x-reverse">
-                    <Checkbox 
+                    <Checkbox
                       id={`column-${column.id}`}
                       checked={visibleColumns.includes(column.id)}
                       onCheckedChange={() => toggleColumn(column.id)}
                     />
-                    <Label 
-                      htmlFor={`column-${column.id}`} 
+                    <Label
+                      htmlFor={`column-${column.id}`}
                       className="cursor-pointer text-sm font-normal"
                     >
                       {column.label}
@@ -154,9 +152,8 @@ export const InstallmentsTable: React.FC<InstallmentsTableProps> = ({
             {installments.map((installment) => (
               <tr
                 key={installment.id}
-                className={`border-b last:border-0 hover:bg-muted/30 transition-colors cursor-pointer ${
-                  selectedClientId === installment.id ? 'bg-orange-50/50 dark:bg-orange-950/20' : ''
-                }`}
+                className={`border-b last:border-0 hover:bg-muted/30 transition-colors cursor-pointer ${selectedClientId === installment.id ? 'bg-orange-50/50 dark:bg-orange-950/20' : ''
+                  }`}
                 onClick={() => onClientClick(installment.id)}
               >
                 {visibleColumns.includes('image') && (
@@ -239,90 +236,19 @@ export const InstallmentsTable: React.FC<InstallmentsTableProps> = ({
                         </span>
                       </Button>
 
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={(e) => e.stopPropagation()}
-                            className="gap-1.5 shadow-sm"
-                            title="الإجراءات"
-                          >
-                            <Settings className="w-4 h-4" />
-                            <span className="hidden sm:inline font-medium">الإجراءات</span>
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent className="sm:max-w-[420px] rounded-xl border-0 shadow-xl" dir="rtl">
-                          <DialogHeader>
-                            <DialogTitle className="text-right text-lg">إجراءات القسط</DialogTitle>
-                          </DialogHeader>
-                          <div className="flex flex-col gap-2.5 py-3">
-                            <DialogClose asChild>
-                              <Button
-                                variant="outline"
-                                className="justify-start gap-3 h-12 border-green-200 bg-green-50 text-green-700 hover:bg-green-100 hover:text-green-800 dark:bg-green-900/20 dark:border-green-800 dark:text-green-400 font-medium"
-                                onClick={() => onWhatsAppClick(installment.clientPhone)}
-                              >
-                                <MessageCircle className="w-5 h-5" />
-                                مراسلة عبر واتساب
-                              </Button>
-                            </DialogClose>
-                            <DialogClose asChild>
-                              <Button
-                                variant="outline"
-                                className="justify-start gap-3 h-12 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-900/30"
-                                onClick={() => window.location.href = `tel:${installment.clientPhone}`}
-                              >
-                                <Phone className="w-5 h-5" />
-                                اتصال هاتفي بالعميل
-                              </Button>
-                            </DialogClose>
-                            
-                            {installment.latitude && installment.longitude && (
-                              <Button
-                                variant="outline"
-                                className="justify-start gap-3 h-12 border-blue-200 bg-blue-50/50 text-blue-700 hover:bg-blue-100"
-                                onClick={() => window.open(`https://www.google.com/maps?q=${installment.latitude},${installment.longitude}`, '_blank')}
-                              >
-                                <MapPin className="w-5 h-5 text-blue-600" />
-                                عرض الموقع على الخريطة
-                              </Button>
-                            )}
-
-                            <DialogClose asChild>
-                              <Button
-                                variant="outline"
-                                className="justify-start gap-3 h-12"
-                                onClick={() => onActionClick(installment.id, 'view')}
-                              >
-                                <Eye className="w-5 h-5 text-gray-500" />
-                                عرض التفاصيل
-                              </Button>
-                            </DialogClose>
-                            <DialogClose asChild>
-                              <Button
-                                variant="outline"
-                                className="justify-start gap-3 h-12"
-                                onClick={() => onActionClick(installment.id, 'edit')}
-                              >
-                                <Edit2 className="w-5 h-5 text-orange-500" />
-                                تعديل البيانات
-                              </Button>
-                            </DialogClose>
-                            <div className="border-t my-1"></div>
-                            <DialogClose asChild>
-                              <Button
-                                variant="ghost"
-                                className="justify-start gap-3 h-12 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
-                                onClick={() => onActionClick(installment.id, 'delete')}
-                              >
-                                <Trash2 className="w-5 h-5" />
-                                حذف القسط
-                              </Button>
-                            </DialogClose>
-                          </div>
-                        </DialogContent>
-                      </Dialog>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onActionClick(installment.id, 'actions');
+                        }}
+                        className="gap-1.5 shadow-sm"
+                        title="الإجراءات"
+                      >
+                        <Settings className="w-4 h-4" />
+                        <span className="hidden sm:inline font-medium">الإجراءات</span>
+                      </Button>
                     </div>
                   </td>
                 )}
@@ -337,9 +263,8 @@ export const InstallmentsTable: React.FC<InstallmentsTableProps> = ({
         {installments.map((installment) => (
           <div
             key={installment.id}
-            className={`border rounded-xl p-5 bg-card shadow-sm hover:shadow-md transition-all cursor-pointer ${
-              selectedClientId === installment.id ? 'ring-2 ring-orange-500 dark:ring-orange-400' : ''
-            }`}
+            className={`border rounded-xl p-5 bg-card shadow-sm hover:shadow-md transition-all cursor-pointer ${selectedClientId === installment.id ? 'ring-2 ring-orange-500 dark:ring-orange-400' : ''
+              }`}
             onClick={() => onClientClick(installment.id)}
           >
             <div className="space-y-4">
@@ -354,7 +279,7 @@ export const InstallmentsTable: React.FC<InstallmentsTableProps> = ({
                   {visibleColumns.includes('name') && (
                     <p className="font-bold text-lg">{installment.clientName || 'غير محدد'}</p>
                   )}
-                  
+
                   {visibleColumns.includes('nationalId') && installment.nationalId && (
                     <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1 font-mono">
                       <CreditCard className="w-3 h-3 text-muted-foreground shrink-0" />
@@ -365,7 +290,7 @@ export const InstallmentsTable: React.FC<InstallmentsTableProps> = ({
                   {visibleColumns.includes('phone') && (
                     <p className="text-muted-foreground text-sm mt-1" dir="ltr">{installment.clientPhone}</p>
                   )}
-                  
+
                   {visibleColumns.includes('address') && (
                     <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1.5">
                       <MapPin className="w-3 h-3 text-orange-500 shrink-0" />
@@ -408,70 +333,17 @@ export const InstallmentsTable: React.FC<InstallmentsTableProps> = ({
                     <FileText className="w-4 h-4" />
                     ملاحظات ({installment.notes.length})
                   </Button>
+                
+                
+                  <Button variant="outline" size="sm" onClick={(e) => {
+                    e.stopPropagation();
+                    onClientClick(installment.id)
+                    onActionClick(installment.id, 'actions');
+                  }} className="flex-1 gap-2 text-sm shadow-sm">
+                    <Settings className="w-4 h-4" />
+                    الإجراءات
+                  </Button>
 
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button variant="outline" size="sm" onClick={(e) => e.stopPropagation()} className="flex-1 gap-2 text-sm shadow-sm">
-                        <Settings className="w-4 h-4" />
-                        الإجراءات
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-[400px] w-[92%] rounded-2xl py-10" dir="rtl">
-                      <DialogHeader>
-                        <DialogTitle className="text-right text-lg">{installment.clientName}</DialogTitle>
-                      </DialogHeader>
-                      <div className="flex flex-col gap-2.5 py-2">
-                        <DialogClose asChild>
-                          <Button
-                            variant="outline"
-                            className="justify-start gap-3 h-12 border-green-200 bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-900/20 dark:border-green-800 dark:text-green-400 font-medium"
-                            onClick={() => onWhatsAppClick(installment.clientPhone)}
-                          >
-                            <MessageCircle className="w-5 h-5" />
-                            مراسلة عبر واتساب
-                          </Button>
-                        </DialogClose>
-                        <DialogClose asChild>
-                          <Button variant="outline" className="justify-start gap-3 h-12 hover:bg-blue-50 hover:text-blue-700" onClick={() => window.location.href = `tel:${installment.clientPhone}`}>
-                            <Phone className="w-5 h-5" />
-                            اتصال هاتفي
-                          </Button>
-                        </DialogClose>
-
-                        {installment.latitude && installment.longitude && (
-                          <Button
-                            variant="outline"
-                            className="justify-start gap-3 h-12 border-blue-200 bg-blue-50 text-blue-700"
-                            onClick={() => window.open(`https://www.google.com/maps?q=${installment.latitude},${installment.longitude}`, '_blank')}
-                          >
-                            <MapPin className="w-5 h-5 text-blue-500" />
-                            توجيه عبر الخريطة (GPS)
-                          </Button>
-                        )}
-
-                        <div className="border-t my-1"></div>
-                        <DialogClose asChild>
-                          <Button variant="outline" className="justify-start gap-3 h-12" onClick={() => onActionClick(installment.id, 'view')}>
-                            <Eye className="w-5 h-5 text-gray-500" />
-                            عرض البيانات
-                          </Button>
-                        </DialogClose>
-                        <DialogClose asChild>
-                          <Button variant="outline" className="justify-start gap-3 h-12" onClick={() => onActionClick(installment.id, 'edit')}>
-                            <Edit2 className="w-5 h-5 text-orange-500" />
-                            تعديل البيانات
-                          </Button>
-                        </DialogClose>
-                        <div className="border-t my-1"></div>
-                        <DialogClose asChild>
-                          <Button variant="destructive" className="justify-start gap-3 h-12 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20" onClick={() => onActionClick(installment.id, 'delete')}>
-                            <Trash2 className="w-5 h-5" />
-                            حذف القسط
-                          </Button>
-                        </DialogClose>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
                 </div>
               )}
             </div>
