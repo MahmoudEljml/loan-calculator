@@ -127,6 +127,7 @@ export function useInstallmentsStorage() {
       setInstallments(prev => prev.filter(i => i.id !== id));
     } catch (error) {
       console.error('Failed to delete installment:', error);
+      throw error;
     }
   }, []);
 

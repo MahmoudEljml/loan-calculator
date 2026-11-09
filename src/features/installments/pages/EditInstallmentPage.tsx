@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useInstallmentsStorage } from '../hooks/useInstallmentsStorage';
-import { ArrowRight, MessageSquare, X, Image as ImageIcon, MapPin, Hash, CreditCard, User, ShieldCheck, FileText } from 'lucide-react';
+import { ArrowRight, MessageSquare, X, Image as ImageIcon, MapPin, Hash, CreditCard, User, ShieldCheck, FileText, Pencil, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { ImageViewer } from '@/components/ImageViewer';
 import { InstallmentNotesSheet } from '@/features/installments/components/InstallmentNotesSheet';
@@ -11,7 +12,7 @@ import { InstallmentNotesSheet } from '@/features/installments/components/Instal
 export function EditInstallmentPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { getInstallment, addInstallment, updateInstallment, addNote, updateNote, deleteNote } = useInstallmentsStorage();
+  const { getInstallment, addInstallment, updateInstallment, deleteInstallment, addNote, updateNote, deleteNote } = useInstallmentsStorage();
 
   const installmentId = searchParams.get('id');
   const action = searchParams.get('action') || 'view';
@@ -39,6 +40,8 @@ export function EditInstallmentPage() {
   const [showNotesSheet, setShowNotesSheet] = useState(false);
   const [viewerOpen, setViewerOpen] = useState(false);
   const [viewerIndex, setViewerIndex] = useState(0);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     if (existingInstallment) {
@@ -48,7 +51,7 @@ export function EditInstallmentPage() {
       setClientPhone(existingInstallment.clientPhone);
       setAddress(existingInstallment.address || '');
 
-      if (existingInstallment.latitude && existingInstallment.longitude) {
+      if (existingInstallment.latitude != null && existingInstallment.longitude != null) {
         setGpsCoordinates(`${existingInstallment.latitude}, ${existingInstallment.longitude}`);
       }
 
@@ -128,6 +131,22 @@ export function EditInstallmentPage() {
       navigate('/installments');
     } catch {
       toast.error('حدث خطأ في الحفظ');
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!installmentId) return;
+
+    setIsDeleting(true);
+    try {
+      await deleteInstallment(installmentId);
+      toast.success('تم حذف القسط بنجاح');
+      navigate('/installments');
+    } catch (error) {
+      console.error('Failed to delete installment:', error);
+      toast.error('فشل في حذف القسط');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -264,6 +283,41 @@ export function EditInstallmentPage() {
       </div>
 
       {/* Action Buttons */}
+      {installmentId && isView && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <Button
+            onClick={() => navigate(`/edit-installment?id=${installmentId}&action=edit`)}
+            variant="outline"
+            className="gap-2"
+          >
+            <Pencil className="w-4 h-4" />
+            تعديل البيانات
+          </Button>
+          <Button
+            onClick={() => setDeleteDialogOpen(true)}
+            variant="destructive"
+            className="gap-2"
+          >
+            <Trash2 className="w-4 h-4" />
+            حذف القسط
+          </Button>
+          {existingInstallment?.latitude != null && existingInstallment.longitude != null && (
+            <Button
+              onClick={() => window.open(
+                `https://www.google.com/maps?q=${existingInstallment.latitude},${existingInstallment.longitude}`,
+                '_blank',
+                'noopener,noreferrer',
+              )}
+              variant="outline"
+              className="gap-2"
+            >
+              <MapPin className="w-4 h-4" />
+              عرض الموقع على الخريطة
+            </Button>
+          )}
+        </div>
+      )}
+
       {installmentId && !isView && (
         <Button onClick={() => setShowNotesSheet(true)} variant="outline" className="w-full gap-2">
           <MessageSquare className="w-4 h-4" /> الملاحظات ({notes.length})
@@ -281,6 +335,32 @@ export function EditInstallmentPage() {
       <InstallmentNotesSheet open={showNotesSheet} onOpenChange={setShowNotesSheet} installmentId={installmentId} clientName={clientName} notes={notes} onAddNote={handleAddNote} onUpdateNote={handleUpdateNote} onDeleteNote={handleDeleteNote} />
 
       {/* Modals */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]" dir="rtl">
+          <DialogHeader className="text-right">
+            <DialogTitle className="text-right">تأكيد حذف القسط</DialogTitle>
+            <DialogDescription className="text-right">
+              هل أنت متأكد من رغبتك في حذف هذا القسط؟ لا يمكن التراجع عن هذا الإجراء.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex !flex-row gap-2 justify-end">
+            <Button
+              variant="outline"
+              onClick={() => setDeleteDialogOpen(false)}
+              disabled={isDeleting}
+            >
+              إلغاء
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={isDeleting}
+            >
+              {isDeleting ? 'جارٍ الحذف...' : 'حذف'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       {viewerOpen && <ImageViewer images={clientImages} initialIndex={viewerIndex} onClose={() => setViewerOpen(false)} />}
     </div>
   );

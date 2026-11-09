@@ -333,8 +333,8 @@ export const InstallmentsTable: React.FC<InstallmentsTableProps> = ({
                     <FileText className="w-4 h-4" />
                     ملاحظات ({installment.notes.length})
                   </Button>
-                
-                
+
+
                   <Button variant="outline" size="sm" onClick={(e) => {
                     e.stopPropagation();
                     onClientClick(installment.id)

@@ -10,7 +10,7 @@ import { Plus, Search, Download, Upload, ChevronDown, Lock, Trash2 } from 'lucid
 import { toast } from 'sonner';
 import { InstallmentsTable } from '@/features/installments/components/InstallmentsTable';
 import { InstallmentNotesSheet } from '@/features/installments/components/InstallmentNotesSheet';
-import { InstallmentActionsSheet } from '../components/InstallmentActionsSheet';
+import { InstallmentActionsDialog } from '../components/InstallmentActionsDialog';
 
 export function InstallmentsPage() {
   const navigate = useNavigate();
@@ -65,7 +65,7 @@ export function InstallmentsPage() {
   const [notesSheetOpen, setNotesSheetOpen] = useState(false);
   const [selectedNotesInstallmentId, setSelectedNotesInstallmentId] = useState<string | null>(null);
 
-  const [actionsSheetOpen, setActionsSheetOpen] = useState(false);
+  const [actionsDialogOpen, setActionsDialogOpen] = useState(false);
   const [selectedActionsInstallmentId, setSelectedActionsInstallmentId] = useState<string | null>(null);
 
   // حفظ الفلاتر عند تغييرها
@@ -537,7 +537,7 @@ export function InstallmentsPage() {
             }
             if (action === 'actions') {
               setSelectedActionsInstallmentId(id);
-              setActionsSheetOpen(true);
+              setActionsDialogOpen(true);
             }
           }}
           getStatusColor={getStatusColor}
@@ -785,11 +785,11 @@ export function InstallmentsPage() {
         />
       )}
 
-      {/* Actions Sheet */}
+      {/* Actions Dialog */}
       {selectedActionsInstallmentId && (
-        <InstallmentActionsSheet
-          open={actionsSheetOpen}
-          onOpenChange={setActionsSheetOpen}
+        <InstallmentActionsDialog
+          open={actionsDialogOpen}
+          onOpenChange={setActionsDialogOpen}
           installmentId={selectedActionsInstallmentId}
           clientName={
             installments.find(i => i.id === selectedActionsInstallmentId)?.clientName || ''
@@ -797,12 +797,8 @@ export function InstallmentsPage() {
           clientPhone={
             installments.find(i => i.id === selectedActionsInstallmentId)?.clientPhone || ''
           }
-          latitude={installments.find(i => i.id === selectedActionsInstallmentId)?.latitude}
-          longitude={installments.find(i => i.id === selectedActionsInstallmentId)?.longitude}
           onWhatsAppClick={handleWhatsAppClick}
           onView={(id) => navigate(`/edit-installment?id=${id}&action=view`)}
-          onEdit={(id) => navigate(`/edit-installment?id=${id}&action=edit`)}
-          onDelete={setDeleteId}
         />
       )}
 
