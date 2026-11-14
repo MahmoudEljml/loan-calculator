@@ -89,6 +89,7 @@ export function EditInstallmentPage() {
   const [viewerIndex, setViewerIndex] = useState(0);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [keyboardInset, setKeyboardInset] = useState(0);
 
   const loadInstallmentData = useCallback((installment: NonNullable<typeof existingInstallment>) => {
     setClientName(installment.clientName);
@@ -117,6 +118,34 @@ export function EditInstallmentPage() {
   useEffect(() => {
     if (existingInstallment) loadInstallmentData(existingInstallment);
   }, [existingInstallment, isView, loadInstallmentData]);
+
+  useEffect(() => {
+    const visualViewport = window.visualViewport;
+    if (!visualViewport) return;
+
+    const updateKeyboardInset = () => {
+      const activeElement = document.activeElement;
+      const isEditing = activeElement instanceof HTMLElement &&
+        (activeElement.matches('input, textarea, select') || activeElement.isContentEditable);
+      const inset = Math.max(0, window.innerHeight - visualViewport.height - visualViewport.offsetTop);
+      setKeyboardInset(isEditing ? inset : 0);
+    };
+
+    visualViewport.addEventListener('resize', updateKeyboardInset);
+    visualViewport.addEventListener('scroll', updateKeyboardInset);
+    window.addEventListener('resize', updateKeyboardInset);
+    document.addEventListener('focusin', updateKeyboardInset);
+    document.addEventListener('focusout', updateKeyboardInset);
+    updateKeyboardInset();
+
+    return () => {
+      visualViewport.removeEventListener('resize', updateKeyboardInset);
+      visualViewport.removeEventListener('scroll', updateKeyboardInset);
+      window.removeEventListener('resize', updateKeyboardInset);
+      document.removeEventListener('focusin', updateKeyboardInset);
+      document.removeEventListener('focusout', updateKeyboardInset);
+    };
+  }, []);
 
   const isFormInitialized = !installmentId || initializedInstallmentId === installmentId;
   const hasChanges = Boolean(existingInstallment && isFormInitialized && (() => {
@@ -512,9 +541,11 @@ export function EditInstallmentPage() {
       </div>
 
 
-      <div className="sticky bottom-0 z-40 w-full border-t border-border bg-card p-3 shadow-xl" dir="rtl">
-
-
+      <div
+        className="sticky bottom-0 z-40 w-full border-t border-border bg-card p-3 shadow-xl"
+        dir="rtl"
+        style={{ bottom: `${keyboardInset}px` }}
+      >
         {isView ? (
           installmentId && (
             <Button
@@ -541,7 +572,6 @@ export function EditInstallmentPage() {
           </div>
 
         )}
-
       </div>
 
 
