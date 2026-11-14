@@ -62,6 +62,8 @@ export function useExportImportInstallments() {
               clientName: installmentData.clientName,
               clientPhone: installmentData.clientPhone,
               clientImages: installmentData.clientImages || [],
+              loanDuration: installmentData.loanDuration ?? null,
+              installmentNumber: installmentData.installmentNumber ?? null,
               installmentAmount: installmentData.installmentAmount,
               dueDate: installmentData.dueDate,
               status: installmentData.status,
@@ -70,12 +72,10 @@ export function useExportImportInstallments() {
               secondGuarantorName: installmentData.secondGuarantorName,
               secondGuarantorPhone: installmentData.secondGuarantorPhone,
               notes: installmentData.notes || [],
-              // إضافة الخصائص المفقودة المطلوبة
-              clientCode: installmentData.clientCode || "",
               nationalId: installmentData.nationalId || "",
               address: installmentData.address || "",
-              latitude: installmentData.latitude || "",
-              longitude: installmentData.longitude || "",
+              latitude: installmentData.latitude ?? null,
+              longitude: installmentData.longitude ?? null,
             });
 
             successCount++;

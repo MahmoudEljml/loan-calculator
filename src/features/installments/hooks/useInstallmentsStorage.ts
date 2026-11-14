@@ -12,7 +12,6 @@ export interface InstallmentNote {
 
 export interface Installment {
   id: string;
-  clientCode: string;       // كود العميل
   clientName: string;
   nationalId: string;       // 🆕 تم إضافة الرقم القومي للنوع (Interface) هنا
   clientPhone: string;
@@ -20,6 +19,8 @@ export interface Installment {
   latitude: number | null;  // خط العرض GPS
   longitude: number | null; // text خط الطول GPS
   clientImages: string[];
+  loanDuration: number | null;
+  installmentNumber: number | null;
   installmentAmount: number;
   dueDate: string;
   status: 'pending' | 'paid';
@@ -68,7 +69,27 @@ export function useInstallmentsStorage() {
       try {
         const database = await getDB();
         const allInstallments = await database.getAll(STORE_NAME);
-        setInstallments(allInstallments);
+        const needsMigration = allInstallments.some(installment =>
+          'clientCode' in installment ||
+          installment.loanDuration === undefined ||
+          installment.installmentNumber === undefined
+        );
+        const normalizedInstallments = allInstallments.map(storedInstallment => {
+          const installment = { ...storedInstallment } as Installment & { clientCode?: string };
+          delete installment.clientCode;
+          return {
+            ...installment,
+            loanDuration: installment.loanDuration ?? null,
+            installmentNumber: installment.installmentNumber ?? null,
+          };
+        });
+
+        setInstallments(normalizedInstallments);
+        if (needsMigration) {
+          await Promise.all(normalizedInstallments.map(installment =>
+            database.put(STORE_NAME, installment)
+          ));
+        }
       } catch (error) {
         console.error('Failed to load installments from IndexedDB:', error);
       } finally {

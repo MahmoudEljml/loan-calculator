@@ -229,7 +229,6 @@ export function InstallmentsPage() {
 
         // استخدام دالة updateInstallment الموجودة
         await updateInstallment(installment.id, {
-          clientCode: installment.clientCode,
           clientName: installment.clientName,
           nationalId: installment.nationalId,
           clientPhone: installment.clientPhone,
@@ -237,6 +236,8 @@ export function InstallmentsPage() {
           latitude: installment.latitude,
           longitude: installment.longitude,
           clientImages: installment.clientImages,
+          loanDuration: installment.loanDuration,
+          installmentNumber: installment.installmentNumber,
           installmentAmount: installment.installmentAmount,
           dueDate: newDate.toISOString(),
           status: newStatus, // Use the new status if checkbox is checked

@@ -1,7 +1,7 @@
 // src/components/InstallmentsTable.tsx
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { FileText, Settings, MapPin, Hash, CreditCard, Check } from 'lucide-react';
+import { FileText, Settings, MapPin, CreditCard, Check } from 'lucide-react';
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
@@ -11,7 +11,8 @@ import useLocalStorage from '@/hooks/useLocalStorage';
 // Define available columns
 const AVAILABLE_COLUMNS = [
   { id: 'image', label: 'الصورة' },
-  { id: 'code', label: 'كود العميل' },
+  { id: 'installmentNumber', label: 'رقم القسط' },
+  { id: 'loanDuration', label: 'مدة القرض' },
   { id: 'name', label: 'اسم العميل' },
   { id: 'nationalId', label: 'الرقم القومي' },
   { id: 'phone', label: 'رقم الهاتف' },
@@ -22,7 +23,7 @@ const AVAILABLE_COLUMNS = [
 ];
 
 // Default columns to show
-const DEFAULT_COLUMNS = ['image', 'code', 'name', 'nationalId', 'phone', 'address', 'amount', 'status', 'actions'];
+const DEFAULT_COLUMNS = ['image', 'installmentNumber', 'loanDuration', 'name', 'nationalId', 'phone', 'address', 'amount', 'status', 'actions'];
 
 interface InstallmentsTableProps {
   installments: Installment[];
@@ -44,6 +45,15 @@ export const InstallmentsTable: React.FC<InstallmentsTableProps> = ({
   // Use useLocalStorage hook to manage visible columns
   const [visibleColumns, setVisibleColumns] = useLocalStorage<string[]>('installmentsTableColumns', DEFAULT_COLUMNS);
   const [isColumnDialogOpen, setIsColumnDialogOpen] = React.useState(false);
+
+  React.useEffect(() => {
+    setVisibleColumns(columns => {
+      if (!columns.includes('code')) return columns;
+      const migratedColumns = columns.map(column => column === 'code' ? 'installmentNumber' : column);
+      if (!migratedColumns.includes('loanDuration')) migratedColumns.push('loanDuration');
+      return [...new Set(migratedColumns)];
+    });
+  }, [setVisibleColumns]);
 
   // Toggle column visibility
   const toggleColumn = (columnId: string) => {
@@ -122,8 +132,11 @@ export const InstallmentsTable: React.FC<InstallmentsTableProps> = ({
               {visibleColumns.includes('image') && (
                 <th className="px-4 py-4 text-right font-semibold text-muted-foreground">الصورة</th>
               )}
-              {visibleColumns.includes('code') && (
-                <th className="px-4 py-4 text-right font-semibold text-muted-foreground">كود العميل</th>
+              {visibleColumns.includes('installmentNumber') && (
+                <th className="px-4 py-4 text-right font-semibold text-muted-foreground">رقم القسط</th>
+              )}
+              {visibleColumns.includes('loanDuration') && (
+                <th className="px-4 py-4 text-right font-semibold text-muted-foreground">مدة القرض</th>
               )}
               {visibleColumns.includes('name') && (
                 <th className="px-4 py-4 text-right font-semibold text-muted-foreground">اسم العميل</th>
@@ -177,9 +190,14 @@ export const InstallmentsTable: React.FC<InstallmentsTableProps> = ({
                     )}
                   </td>
                 )}
-                {visibleColumns.includes('code') && (
+                {visibleColumns.includes('installmentNumber') && (
                   <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
-                    {installment.clientCode ? `#${installment.clientCode}` : '-'}
+                    {installment.installmentNumber ?? '-'}
+                  </td>
+                )}
+                {visibleColumns.includes('loanDuration') && (
+                  <td className="px-4 py-3 text-muted-foreground">
+                    {installment.loanDuration != null ? `${installment.loanDuration} شهر` : '-'}
                   </td>
                 )}
                 {visibleColumns.includes('name') && (
@@ -270,10 +288,14 @@ export const InstallmentsTable: React.FC<InstallmentsTableProps> = ({
             <div className="space-y-4">
               <div className="flex gap-3 items-start justify-between">
                 <div className="flex-1">
-                  {visibleColumns.includes('code') && installment.clientCode && (
+                  {visibleColumns.includes('installmentNumber') && installment.installmentNumber != null && (
                     <span className="inline-flex items-center gap-0.5 bg-muted px-1.5 py-0.5 rounded text-[10px] font-mono font-medium text-muted-foreground">
-                      <Hash className="w-2.5 h-2.5" />
-                      {installment.clientCode}
+                      رقم القسط: {installment.installmentNumber}
+                    </span>
+                  )}
+                  {visibleColumns.includes('loanDuration') && installment.loanDuration != null && (
+                    <span className="inline-flex items-center bg-muted px-1.5 py-0.5 rounded text-[10px] font-medium text-muted-foreground mr-1">
+                      مدة القرض: {installment.loanDuration} شهر
                     </span>
                   )}
                   {visibleColumns.includes('name') && (
