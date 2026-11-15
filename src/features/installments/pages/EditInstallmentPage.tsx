@@ -157,8 +157,8 @@ export function EditInstallmentPage() {
       (coordinateInput === '' || coordinateInput === ','
         ? existingInstallment.latitude != null || existingInstallment.longitude != null
         : !coordinates ||
-          coordinates.latitude !== (existingInstallment.latitude ?? null) ||
-          coordinates.longitude !== (existingInstallment.longitude ?? null)) ||
+        coordinates.latitude !== (existingInstallment.latitude ?? null) ||
+        coordinates.longitude !== (existingInstallment.longitude ?? null)) ||
       clientImages.length !== originalImages.length ||
       clientImages.some((image, index) => image !== originalImages[index]) ||
       (loanDuration.trim() ? Number(loanDuration) : null) !== (existingInstallment.loanDuration ?? null) ||
@@ -308,7 +308,7 @@ export function EditInstallmentPage() {
         <div aria-hidden="true" className="installment-page-glow-soft pointer-events-none absolute -bottom-24 right-[-6rem] size-72 rounded-full blur-3xl" />
         <div className="relative space-y-6 px-3 py-4 pb-28 text-start sm:px-4 sm:py-5" dir="rtl">
           {/* Header */}
-          <div className="sticky top-0 z-30 -mx-3 flex items-center gap-4 border-b border-border bg-background px-3 py-3 shadow-sm sm:-mx-4 sm:px-4">
+          <div className="sticky top-0 z-30 -mx-3 flex items-center gap-4 border-b border-border bg-background/80 px-3 py-3 shadow-sm backdrop-blur-md sm:-mx-4 sm:px-4">
             <Button variant="ghost" size="sm" onClick={handleCancel} className="gap-2">
               <ArrowRight className="w-4 h-4" /> رجوع
             </Button>
@@ -537,9 +537,9 @@ export function EditInstallmentPage() {
         </div>
       </div>
 
-
+      {/* Footer */}
       <div
-        className="sticky bottom-0 z-40 w-full border-t border-border bg-card p-3 shadow-xl"
+        className="sticky bottom-0 z-40 -mx-3 border-t border-border p-3 shadow-xl backdrop-blur-md"
         dir="rtl"
         style={{ bottom: `${keyboardInset}px` }}
       >
