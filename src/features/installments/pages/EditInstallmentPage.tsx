@@ -124,11 +124,8 @@ export function EditInstallmentPage() {
     if (!visualViewport) return;
 
     const updateKeyboardInset = () => {
-      const activeElement = document.activeElement;
-      const isEditing = activeElement instanceof HTMLElement &&
-        (activeElement.matches('input, textarea, select') || activeElement.isContentEditable);
       const inset = Math.max(0, window.innerHeight - visualViewport.height - visualViewport.offsetTop);
-      setKeyboardInset(isEditing ? inset : 0);
+      setKeyboardInset(inset);
     };
 
     visualViewport.addEventListener('resize', updateKeyboardInset);
