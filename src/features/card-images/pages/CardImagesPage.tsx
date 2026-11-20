@@ -1,22 +1,27 @@
 import { useEffect, useRef, useState } from 'react';
 import {
+  ArrowUpDown,
+  Check,
   Download,
   Crop,
   Images,
   Link2,
+  History,
   RotateCcw,
   RotateCw,
-  ScanLine,
   Trash2,
   UserRound,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import {
-  processCardImage,
-  normalizeDigits,
+  cropImage,
+  drawImageTransformToCanvas,
+  drawPerspectiveImage,
+  rotateImage,
+  type CropSelection,
   type CardSide,
+  type ImageTransform,
 } from '../lib/image-processing';
 
 interface CardPhoto {
@@ -25,30 +30,110 @@ interface CardPhoto {
   url: string;
   blob: Blob;
   side: CardSide | null;
-  nationalId: string;
   rotation: number;
   cropped: boolean;
-  processed: boolean;
+  width: number;
+  height: number;
+  originalBlob: Blob;
+  originalWidth: number;
+  originalHeight: number;
+}
+
+interface CropPreviewSource {
+  url: string;
+  canvas: HTMLCanvasElement;
   width: number;
   height: number;
 }
 
 interface GroupedCard {
   id: string;
-  nationalId: string;
   frontPhotoId?: string;
   backPhotoId?: string;
 }
 
-interface CropSelection {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
-
 const CARD_WIDTH = 1586;
 const CARD_HEIGHT = 1000;
+const A4_WIDTH = 2480;
+const A4_HEIGHT = 3508;
+const A4_MARGIN = 100;
+const PREVIEW_WIDTH = 900;
+const COLLAGE_GAP_RATIO = 0.024;
+type TransformKey = keyof ImageTransform;
+
+const DEFAULT_IMAGE_TRANSFORM: ImageTransform = {
+  rotation: 0,
+  tiltX: 0,
+  tiltY: 0,
+};
+
+const TRANSFORM_CONTROLS: {
+  key: TransformKey;
+  label: string;
+  min: number;
+  max: number;
+  step: number;
+  unit: string;
+}[] = [
+  { key: 'rotation', label: 'زاوية التدوير الدقيقة', min: -90, max: 90, step: 0.5, unit: '°' },
+  { key: 'tiltX', label: 'إمالة أفقية بالمنظور', min: -35, max: 35, step: 1, unit: '°' },
+  { key: 'tiltY', label: 'إمالة رأسية بالمنظور', min: -35, max: 35, step: 1, unit: '°' },
+];
+
+function createDownloadFileName(index: number, extension: string) {
+  const date = new Date();
+  const dateKey = [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, '0'),
+    String(date.getDate()).padStart(2, '0'),
+  ].join('-');
+  return `card-collage-${dateKey}-${index + 1}-${crypto.randomUUID()}.${extension}`;
+}
+
+function PhotoTransformControls({
+  transform,
+  onChange,
+  onReset,
+  disabled = false,
+}: {
+  transform: ImageTransform;
+  onChange: (key: TransformKey, value: number) => void;
+  onReset: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <div className="shrink-0 rounded-md border bg-muted/40 p-2 sm:p-3">
+      <div className="mb-1 flex items-center justify-between gap-2">
+        <h3 className="text-xs font-medium sm:text-sm">ضبط الدوران والمنظور</h3>
+        <Button type="button" size="sm" variant="outline" className="h-7 gap-1 px-2 text-xs" onClick={onReset} disabled={disabled}>
+          <RotateCcw className="size-3.5" />
+          إعادة الضبط
+        </Button>
+      </div>
+      <div className="grid grid-cols-1 gap-x-3 gap-y-1 sm:grid-cols-3">
+        {TRANSFORM_CONTROLS.map((control) => (
+          <label key={control.key} className="block min-w-0 space-y-0.5 text-[11px]">
+            <span className="flex items-center justify-between gap-1">
+              <span>{control.label}</span>
+              <span dir="ltr">{transform[control.key]}{control.unit}</span>
+            </span>
+            <input
+              type="range"
+              min={control.min}
+              max={control.max}
+              step={control.step}
+              value={transform[control.key]}
+              disabled={disabled}
+              onChange={(event) => onChange(control.key, Number(event.target.value))}
+              className="h-4 w-full accent-primary"
+              aria-label={control.label}
+            />
+          </label>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function loadImage(url: string) {
   return new Promise<HTMLImageElement>((resolve, reject) => {
@@ -57,37 +142,6 @@ function loadImage(url: string) {
     image.onerror = () => reject(new Error('تعذر تحميل إحدى صور البطاقة'));
     image.src = url;
   });
-}
-
-function drawCardImage(
-  context: CanvasRenderingContext2D,
-  image: HTMLImageElement,
-  y: number,
-) {
-  const targetRatio = CARD_WIDTH / CARD_HEIGHT;
-  const imageRatio = image.naturalWidth / image.naturalHeight;
-  let sourceX = 0;
-  let sourceY = 0;
-  let sourceWidth = image.naturalWidth;
-  let sourceHeight = image.naturalHeight;
-  if (imageRatio > targetRatio) {
-    sourceWidth = image.naturalHeight * targetRatio;
-    sourceX = (image.naturalWidth - sourceWidth) / 2;
-  } else {
-    sourceHeight = image.naturalWidth / targetRatio;
-    sourceY = (image.naturalHeight - sourceHeight) / 2;
-  }
-  context.drawImage(
-    image,
-    sourceX,
-    sourceY,
-    sourceWidth,
-    sourceHeight,
-    0,
-    y,
-    CARD_WIDTH,
-    CARD_HEIGHT,
-  );
 }
 
 function downloadBlob(blob: Blob, fileName: string) {
@@ -101,38 +155,83 @@ function downloadBlob(blob: Blob, fileName: string) {
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+function drawCollage(
+  canvas: HTMLCanvasElement,
+  front: HTMLImageElement,
+  back: HTMLImageElement,
+  frameWidth: number,
+) {
+  const pageScale = frameWidth / A4_WIDTH;
+  const pageHeight = A4_HEIGHT * pageScale;
+  const margin = A4_MARGIN * pageScale;
+  const contentWidth = frameWidth - margin * 2;
+  const contentHeight = pageHeight - margin * 2;
+  const frameScale = Math.min(
+    contentWidth / CARD_WIDTH,
+    contentHeight / (CARD_HEIGHT * (2 + COLLAGE_GAP_RATIO)),
+  );
+  const slotWidth = CARD_WIDTH * frameScale;
+  const slotHeight = CARD_HEIGHT * frameScale;
+  const scaledGap = slotHeight * COLLAGE_GAP_RATIO;
+  const frameX = (frameWidth - slotWidth) / 2;
+  const frontY = (pageHeight - (slotHeight * 2 + scaledGap)) / 2;
+  const frontFrame = { x: frameX, y: frontY, width: slotWidth, height: slotHeight };
+  const backFrame = {
+    x: frameX,
+    y: frontY + slotHeight + scaledGap,
+    width: slotWidth,
+    height: slotHeight,
+  };
+
+  canvas.width = Math.round(frameWidth);
+  canvas.height = Math.round(pageHeight);
+  const context = canvas.getContext('2d');
+  if (!context) throw new Error('تعذر تجهيز معاينة البطاقة');
+  context.fillStyle = '#ffffff';
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  drawPerspectiveImage(
+    context,
+    front,
+    front.naturalWidth,
+    front.naturalHeight,
+    frontFrame,
+    DEFAULT_IMAGE_TRANSFORM,
+    { x: 0, y: 0 },
+  );
+  drawPerspectiveImage(
+    context,
+    back,
+    back.naturalWidth,
+    back.naturalHeight,
+    backFrame,
+    DEFAULT_IMAGE_TRANSFORM,
+    { x: 0, y: 0 },
+  );
+}
+
 function CombinedCardPreview({
-  card,
   front,
   back,
+  index,
 }: {
-  card: GroupedCard;
   front: CardPhoto;
   back: CardPhoto;
+  index: number;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isReady, setIsReady] = useState(false);
   const [previewError, setPreviewError] = useState('');
+  const [images, setImages] = useState<[HTMLImageElement, HTMLImageElement] | null>(null);
 
   useEffect(() => {
     let active = true;
     setIsReady(false);
     setPreviewError('');
+    setImages(null);
 
     void Promise.all([loadImage(front.url), loadImage(back.url)])
       .then(([frontImage, backImage]) => {
-        if (!active || !canvasRef.current) return;
-        const gap = 24;
-        const canvas = canvasRef.current;
-        canvas.width = CARD_WIDTH;
-        canvas.height = CARD_HEIGHT * 2 + gap;
-        const context = canvas.getContext('2d');
-        if (!context) throw new Error('تعذر تجهيز معاينة البطاقة');
-        context.fillStyle = '#ffffff';
-        context.fillRect(0, 0, canvas.width, canvas.height);
-        drawCardImage(context, frontImage, 0);
-        drawCardImage(context, backImage, CARD_HEIGHT + gap);
-        setIsReady(true);
+        if (active) setImages([frontImage, backImage]);
       })
       .catch((error: unknown) => {
         if (!active) return;
@@ -145,16 +244,53 @@ function CombinedCardPreview({
     };
   }, [front.url, back.url]);
 
+  useEffect(() => {
+    if (!images || !canvasRef.current) return;
+    try {
+      const [frontImage, backImage] = images;
+      drawCollage(
+        canvasRef.current,
+        frontImage,
+        backImage,
+        PREVIEW_WIDTH,
+      );
+      setPreviewError('');
+      setIsReady(true);
+    } catch (error) {
+      console.error('تعذر تركيب معاينة البطاقة:', error);
+      setPreviewError('تعذر إنشاء المعاينة. حاول تدوير الصور أو قصّها ثم أعد المحاولة.');
+      setIsReady(false);
+    }
+  }, [images]);
+
   const download = () => {
-    const canvas = canvasRef.current;
-    if (!canvas || !isReady) return;
-    canvas.toBlob(
+    if (!images || !isReady) return;
+    const [frontImage, backImage] = images;
+    const exportCanvas = document.createElement('canvas');
+    try {
+      drawCollage(
+        exportCanvas,
+        frontImage,
+        backImage,
+        A4_WIDTH,
+      );
+    } catch (error) {
+      console.error('تعذر تجهيز صورة البطاقة للتحميل:', error);
+      toast.error('تعذر تجهيز صورة البطاقة للتحميل');
+      return;
+    }
+    exportCanvas.toBlob(
       (blob) => {
+        exportCanvas.width = 0;
+        exportCanvas.height = 0;
         if (!blob) {
           toast.error('تعذر تجهيز صورة البطاقة للتحميل');
           return;
         }
-        downloadBlob(blob, `card-${card.nationalId || 'new'}.jpg`);
+        downloadBlob(
+          blob,
+          createDownloadFileName(index, 'jpg'),
+        );
       },
       'image/jpeg',
       0.96,
@@ -163,12 +299,17 @@ function CombinedCardPreview({
 
   return (
     <div className="space-y-3 rounded-lg border p-3">
-      <h3 className="text-sm font-semibold">معاينة البطاقة بعد التركيب</h3>
-      <canvas
-        ref={canvasRef}
-        aria-label="معاينة البطاقة المجمعة: الوجه بالأعلى والظهر بالأسفل"
-        className={`mx-auto h-auto max-h-[60vh] w-full bg-muted object-contain ${isReady ? 'block' : 'hidden'}`}
-      />
+      <div>
+        <h3 className="text-sm font-semibold">معاينة البطاقة بعد التركيب</h3>
+        <p className="text-xs text-muted-foreground">مقاس A4 عمودي: 2480 × 3508 بكسل (300 نقطة/بوصة)</p>
+      </div>
+      <div className="max-h-[60vh] overflow-auto rounded-md bg-white">
+        <canvas
+          ref={canvasRef}
+          aria-label="معاينة البطاقة المجمعة: الوجه بالأعلى والظهر بالأسفل"
+          className={`mx-auto h-auto max-h-[60vh] w-full object-contain ${isReady ? 'block' : 'hidden'}`}
+        />
+      </div>
       {!isReady && !previewError && (
         <p className="py-5 text-center text-sm text-muted-foreground">جاري تركيب الوجه والظهر...</p>
       )}
@@ -188,14 +329,34 @@ export function CardImagesPage() {
   const [processingStatus, setProcessingStatus] = useState('');
   const [selectedFront, setSelectedFront] = useState('');
   const [selectedBack, setSelectedBack] = useState('');
-  const [manualNationalId, setManualNationalId] = useState('');
   const [editingCropPhotoId, setEditingCropPhotoId] = useState('');
+  const [editingTransform, setEditingTransform] = useState<ImageTransform>({ ...DEFAULT_IMAGE_TRANSFORM });
   const [cropSelection, setCropSelection] = useState<CropSelection | null>(null);
+  const [cropPreviewSize, setCropPreviewSize] = useState<{ photoId: string; width: number; height: number } | null>(null);
+  const [cropPreviewReady, setCropPreviewReady] = useState(false);
+  const [cropPreviewError, setCropPreviewError] = useState('');
+  const [isApplyingCrop, setIsApplyingCrop] = useState(false);
   const photoUrls = useRef(new Set<string>());
   const uploadInput = useRef<HTMLInputElement>(null);
+  const cropCanvasRef = useRef<HTMLCanvasElement>(null);
+  const cropPreviewSourceRef = useRef<CropPreviewSource | null>(null);
   const processingRef = useRef(false);
   const cropDragRef = useRef<{ x: number; y: number } | null>(null);
   const mountedRef = useRef(true);
+  const unmatchedPhotos = photos.filter((photo) => (
+    !cards.some((card) => card.frontPhotoId === photo.id || card.backPhotoId === photo.id)
+  ));
+  const editingCropPhoto = photos.find((photo) => photo.id === editingCropPhotoId);
+  const cropPreviewDimensions = editingCropPhoto
+    ? cropPreviewSize?.photoId === editingCropPhoto.id ? cropPreviewSize : editingCropPhoto
+    : null;
+  const hasTransformChanges = editingTransform.rotation !== 0
+    || editingTransform.tiltX !== 0
+    || editingTransform.tiltY !== 0;
+  const hasValidCropSelection = Boolean(
+    cropSelection && cropSelection.width >= 0.03 && cropSelection.height >= 0.03,
+  );
+  const canApplyCrop = hasValidCropSelection || (!cropSelection && hasTransformChanges);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -204,13 +365,87 @@ export function CardImagesPage() {
       mountedRef.current = false;
       urls.forEach((url) => URL.revokeObjectURL(url));
       urls.clear();
+      if (cropPreviewSourceRef.current) {
+        cropPreviewSourceRef.current.canvas.width = 0;
+        cropPreviewSourceRef.current.canvas.height = 0;
+        cropPreviewSourceRef.current = null;
+      }
     };
   }, []);
 
-  const unmatchedPhotos = photos.filter((photo) => (
-    !cards.some((card) => card.frontPhotoId === photo.id || card.backPhotoId === photo.id)
-  ));
-  const editingCropPhoto = photos.find((photo) => photo.id === editingCropPhotoId);
+  useEffect(() => {
+    let active = true;
+    const photo = editingCropPhoto;
+    setCropPreviewReady(false);
+    setCropPreviewError('');
+    setCropPreviewSize(null);
+
+    if (!photo) {
+      if (cropPreviewSourceRef.current) {
+        cropPreviewSourceRef.current.canvas.width = 0;
+        cropPreviewSourceRef.current.canvas.height = 0;
+        cropPreviewSourceRef.current = null;
+      }
+      return () => {
+        active = false;
+      };
+    }
+
+    const cachedSource = cropPreviewSourceRef.current;
+    if (cachedSource && cachedSource.url !== photo.url) {
+      cachedSource.canvas.width = 0;
+      cachedSource.canvas.height = 0;
+      cropPreviewSourceRef.current = null;
+    }
+
+    const drawPreview = (source: HTMLCanvasElement, width: number, height: number) => {
+      if (!active || !cropCanvasRef.current) return;
+      try {
+        const size = drawImageTransformToCanvas(
+          cropCanvasRef.current,
+          source,
+          width,
+          height,
+          editingTransform,
+        );
+        setCropPreviewSize({ photoId: photo.id, ...size });
+        setCropPreviewReady(true);
+      } catch (error) {
+        console.error('تعذر تجهيز معاينة القص:', error);
+        setCropPreviewError('تعذر تجهيز معاينة الصورة للتحرير');
+      }
+    };
+
+    const currentSource = cropPreviewSourceRef.current;
+    if (currentSource?.url === photo.url) {
+      drawPreview(currentSource.canvas, currentSource.width, currentSource.height);
+    } else {
+      void loadImage(photo.url)
+        .then((image) => {
+          if (!active) return;
+          const scale = Math.min(1, 1600 / Math.max(image.naturalWidth, image.naturalHeight));
+          const width = Math.max(1, Math.round(image.naturalWidth * scale));
+          const height = Math.max(1, Math.round(image.naturalHeight * scale));
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const context = canvas.getContext('2d');
+          if (!context) throw new Error('تعذر تجهيز الصورة للتحرير');
+          context.drawImage(image, 0, 0, width, height);
+          cropPreviewSourceRef.current = { url: photo.url, canvas, width, height };
+          drawPreview(canvas, width, height);
+        })
+        .catch((error: unknown) => {
+          if (!active) return;
+          console.error('تعذر تحميل صورة القص اليدوي:', error);
+          setCropPreviewError('تعذر تحميل الصورة للقص اليدوي');
+        });
+    }
+
+    return () => {
+      active = false;
+    };
+  }, [editingCropPhoto, editingTransform]);
 
   const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files ?? []);
@@ -244,93 +479,26 @@ export function CardImagesPage() {
             url,
             blob: file,
             side: null,
-            nationalId: '',
             rotation: 0,
             cropped: false,
-            processed: false,
             width: image.naturalWidth,
             height: image.naturalHeight,
+            originalBlob: file,
+            originalWidth: image.naturalWidth,
+            originalHeight: image.naturalHeight,
           });
         } catch (error) {
           URL.revokeObjectURL(url);
           photoUrls.current.delete(url);
-          console.error(`تعذر تحميل الصورة ${file.name}:`, error);
-          toast.error(`تعذر تحميل الصورة: ${file.name}`);
+          console.error('تعذر تحميل صورة البطاقة:', error);
+          toast.error('تعذر تحميل إحدى الصور المحددة');
         }
       }
 
       if (mountedRef.current && newPhotos.length > 0) {
         setPhotos((current) => [...current, ...newPhotos]);
-        toast.success(`تم تحميل ${newPhotos.length} صورة. اضغط «قص وتجهيز الصور» للمتابعة.`);
+        toast.success(`تم تحميل ${newPhotos.length} صورة. اختر الوجه والظهر ثم عدّل القص يدويًا.`);
       }
-    } finally {
-      processingRef.current = false;
-      if (mountedRef.current) {
-        setIsProcessing(false);
-        setProcessingStatus('');
-      }
-    }
-  };
-
-  const preparePhotos = async () => {
-    if (processingRef.current) return;
-    if (unmatchedPhotos.length === 0) {
-      toast.error('اختر الصور أولًا');
-      return;
-    }
-    const photosToProcess = unmatchedPhotos.filter((photo) => !photo.processed);
-    if (photosToProcess.length === 0) {
-      toast.info('الصور جاهزة. اختر يدويًا الوجه والظهر اللذين يخصان البطاقة نفسها.');
-      return;
-    }
-
-    processingRef.current = true;
-    setIsProcessing(true);
-    setProcessingStatus('جاري قصّ الصور وضبط اتجاهها...');
-    let rotatedCount = 0;
-    let failedCount = 0;
-    let preparedCount = 0;
-
-    try {
-      const preparedById = new Map<string, CardPhoto>();
-      for (const [index, photo] of photosToProcess.entries()) {
-        setProcessingStatus(`جاري تجهيز الصورة ${index + 1} من ${photosToProcess.length}...`);
-        try {
-          const prepared = await processCardImage(photo.blob);
-          if (!mountedRef.current) return;
-          if (prepared.rotation !== 0) rotatedCount += 1;
-          preparedCount += 1;
-          const url = URL.createObjectURL(prepared.blob);
-          photoUrls.current.add(url);
-          URL.revokeObjectURL(photo.url);
-          photoUrls.current.delete(photo.url);
-          preparedById.set(photo.id, {
-            ...photo,
-            blob: prepared.blob,
-            url,
-            rotation: prepared.rotation,
-            cropped: prepared.cropped,
-            processed: true,
-            width: prepared.width,
-            height: prepared.height,
-          });
-        } catch (error) {
-          failedCount += 1;
-          console.error(`تعذرت معالجة الصورة ${photo.name}:`, error);
-          toast.error(`تعذرت معالجة الصورة: ${photo.name}`);
-        }
-      }
-
-      const preparedPhotos = photos.map((photo) => preparedById.get(photo.id) ?? photo);
-      setPhotos(preparedPhotos);
-      if (failedCount > 0) {
-        toast.error('لم يكتمل تجهيز بعض الصور. أعد الضغط على «قص وتجهيز الصور».');
-        return;
-      }
-
-      setPhotos(preparedPhotos);
-      if (rotatedCount > 0) toast.success(`تم تصحيح اتجاه ${rotatedCount} صورة`);
-      toast.success(`تم قص وتجهيز ${preparedCount} صورة. اختر الوجه والظهر الصحيحين يدويًا لتجنب خلط البطاقات.`);
     } finally {
       processingRef.current = false;
       if (mountedRef.current) {
@@ -341,61 +509,57 @@ export function CardImagesPage() {
   };
 
   const handleManualPair = () => {
-    const nationalId = normalizeDigits(manualNationalId).trim();
-    if (!selectedFront && !selectedBack) {
-      toast.error('اختر صورة وجه أو ظهر واحدة على الأقل');
+    if (!selectedFront || !selectedBack) {
+      toast.error('اختر صورة الوجه وصورة الظهر');
       return;
     }
-    if (selectedFront && selectedFront === selectedBack) {
+    if (selectedFront === selectedBack) {
       toast.error('اختر صورتين مختلفتين للوجه والظهر');
       return;
     }
-    if (nationalId && !/^\d{14}$/.test(nationalId)) {
-      toast.error('يجب أن يتكون الرقم القومي من 14 رقمًا');
-      return;
-    }
-
-    const matchingCard = nationalId ? cards.find((card) => card.nationalId === nationalId) : undefined;
-    if (
-      matchingCard &&
-      ((selectedFront && matchingCard.frontPhotoId) || (selectedBack && matchingCard.backPhotoId))
-    ) {
-      toast.error('توجد صورة مرتبطة بهذا الرقم بالفعل في نفس الجهة؛ فك ارتباط البطاقة أولًا');
-      return;
-    }
-
-    setCards((current) => matchingCard
-      ? current.map((card) => card.id === matchingCard.id
-        ? {
-          ...card,
-          ...(selectedFront ? { frontPhotoId: selectedFront } : {}),
-          ...(selectedBack ? { backPhotoId: selectedBack } : {}),
-        }
-        : card)
-      : [
-        ...current,
-        {
-          id: crypto.randomUUID(),
-          nationalId,
-          ...(selectedFront ? { frontPhotoId: selectedFront } : {}),
-          ...(selectedBack ? { backPhotoId: selectedBack } : {}),
-        },
-      ]);
+    setCards((current) => [
+      ...current,
+      {
+        id: crypto.randomUUID(),
+        frontPhotoId: selectedFront,
+        backPhotoId: selectedBack,
+      },
+    ]);
     setPhotos((current) => current.map((photo) => (
       photo.id === selectedFront || photo.id === selectedBack
-        ? { ...photo, nationalId, side: photo.id === selectedFront ? 'front' : 'back' }
+        ? { ...photo, side: photo.id === selectedFront ? 'front' : 'back' }
         : photo
     )));
     setSelectedFront('');
     setSelectedBack('');
-    setManualNationalId('');
-    toast.success(nationalId ? 'تم ربط الصور بالرقم القومي' : 'تم إنشاء بطاقة جديدة بدون رقم قومي');
+    toast.success('تم ربط الوجه بالظهر');
   };
 
-  const updateCardNationalId = (cardId: string, value: string) => {
-    const nationalId = normalizeDigits(value).replace(/\D/g, '').slice(0, 14);
-    setCards((current) => current.map((card) => (
-      card.id === cardId ? { ...card, nationalId } : card
+  const swapCardSides = (cardId: string) => {
+    const card = cards.find((item) => item.id === cardId);
+    if (!card?.frontPhotoId || !card.backPhotoId) return;
+    setCards((current) => current.map((item) => (
+      item.id === cardId
+        ? { ...item, frontPhotoId: card.backPhotoId, backPhotoId: card.frontPhotoId }
+        : item
+    )));
+    setPhotos((current) => current.map((photo) => (
+      photo.id === card.frontPhotoId
+        ? { ...photo, side: 'back' }
+        : photo.id === card.backPhotoId
+          ? { ...photo, side: 'front' }
+          : photo
+    )));
+  };
+
+  const unlinkCard = (cardId: string) => {
+    const card = cards.find((item) => item.id === cardId);
+    setCards((current) => current.filter((item) => item.id !== cardId));
+    if (!card) return;
+    setPhotos((current) => current.map((photo) => (
+      photo.id === card.frontPhotoId || photo.id === card.backPhotoId
+        ? { ...photo, side: null }
+        : photo
     )));
   };
 
@@ -417,28 +581,58 @@ export function CardImagesPage() {
     if (selectedBack === photoId) setSelectedBack('');
   };
 
+  const restoreOriginalPhoto = (photoId: string) => {
+    const photo = photos.find((item) => item.id === photoId);
+    if (!photo || photo.blob === photo.originalBlob) return;
+
+    try {
+      const url = URL.createObjectURL(photo.originalBlob);
+      photoUrls.current.add(url);
+      URL.revokeObjectURL(photo.url);
+      photoUrls.current.delete(photo.url);
+      setPhotos((current) => current.map((item) => (
+        item.id === photoId
+          ? {
+            ...item,
+            blob: photo.originalBlob,
+            url,
+            rotation: 0,
+            cropped: false,
+            width: photo.originalWidth,
+            height: photo.originalHeight,
+          }
+          : item
+      )));
+      toast.success('تمت استعادة الصورة الأصلية');
+    } catch (error) {
+      console.error('تعذر استعادة الصورة الأصلية:', error);
+      toast.error('تعذرت استعادة الصورة الأصلية');
+    }
+  };
+
+  const openCropEditor = (photoId: string) => {
+    setEditingTransform({ ...DEFAULT_IMAGE_TRANSFORM });
+    setEditingCropPhotoId(photoId);
+    setCropSelection(null);
+  };
+
+  const updatePhotoTransform = (key: TransformKey, value: number) => {
+    setCropSelection(null);
+    setEditingTransform((current) => ({ ...current, [key]: value }));
+  };
+
+  const resetPhotoTransform = () => {
+    setCropSelection(null);
+    setEditingTransform({ ...DEFAULT_IMAGE_TRANSFORM });
+  };
+
   const rotatePhoto = async (photoId: string, degrees: 90 | -90) => {
     const photo = photos.find((item) => item.id === photoId);
     if (!photo) return;
     try {
-      const image = await loadImage(photo.url);
-      const canvas = document.createElement('canvas');
-      canvas.width = image.naturalHeight;
-      canvas.height = image.naturalWidth;
-      const context = canvas.getContext('2d');
-      if (!context) throw new Error('تعذر تجهيز الصورة للتدوير');
-      context.translate(canvas.width / 2, canvas.height / 2);
-      context.rotate((degrees * Math.PI) / 180);
-      context.drawImage(image, -image.naturalWidth / 2, -image.naturalHeight / 2);
-      const blob = await new Promise<Blob>((resolve, reject) => {
-        canvas.toBlob(
-          (result) => result ? resolve(result) : reject(new Error('تعذر تدوير الصورة')),
-          'image/jpeg',
-          0.96,
-        );
-      });
+      const rotated = await rotateImage(photo.blob, degrees);
       if (!mountedRef.current || !photoUrls.current.has(photo.url)) return;
-      const url = URL.createObjectURL(blob);
+      const url = URL.createObjectURL(rotated.blob);
       photoUrls.current.add(url);
       URL.revokeObjectURL(photo.url);
       photoUrls.current.delete(photo.url);
@@ -446,14 +640,14 @@ export function CardImagesPage() {
         ? {
           ...item,
           url,
-          blob,
+          blob: rotated.blob,
           rotation: (item.rotation + degrees + 360) % 360,
-          width: canvas.width,
-          height: canvas.height,
+          width: rotated.width,
+          height: rotated.height,
         }
         : item));
     } catch (error) {
-      console.error('تعذر تدوير الصورة يدويًا:', error);
+      console.error('تعذر تدوير صورة البطاقة يدويًا:', error);
       toast.error('تعذر تدوير الصورة');
     }
   };
@@ -487,67 +681,49 @@ export function CardImagesPage() {
 
   const applyManualCrop = async () => {
     const photo = photos.find((item) => item.id === editingCropPhotoId);
-    if (!photo || !cropSelection || cropSelection.width < 0.03 || cropSelection.height < 0.03) {
+    if (!photo) return;
+    if (cropSelection && !hasValidCropSelection) {
       toast.error('اسحب على الصورة لتحديد مساحة البطاقة أولًا');
       return;
     }
+    if (!cropSelection && !hasTransformChanges) return;
 
+    setIsApplyingCrop(true);
     try {
-      const bitmap = await createImageBitmap(photo.blob);
-      try {
-        const x = Math.round(cropSelection.x * bitmap.width);
-        const y = Math.round(cropSelection.y * bitmap.height);
-        const width = Math.min(bitmap.width - x, Math.round(cropSelection.width * bitmap.width));
-        const height = Math.min(bitmap.height - y, Math.round(cropSelection.height * bitmap.height));
-        const canvas = document.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
-        const context = canvas.getContext('2d');
-        if (!context) throw new Error('تعذر تجهيز القص اليدوي');
-        context.drawImage(bitmap, x, y, width, height, 0, 0, width, height);
-        const blob = await new Promise<Blob>((resolve, reject) => {
-          canvas.toBlob(
-            (result) => result ? resolve(result) : reject(new Error('تعذر حفظ القص اليدوي')),
-            'image/jpeg',
-            0.96,
-          );
-        });
-        if (!mountedRef.current || !photoUrls.current.has(photo.url)) return;
-        const url = URL.createObjectURL(blob);
-        photoUrls.current.add(url);
-        URL.revokeObjectURL(photo.url);
-        photoUrls.current.delete(photo.url);
-        setPhotos((current) => current.map((item) => item.id === photo.id
-          ? { ...item, blob, url, width, height, cropped: true }
-          : item));
-      } finally {
-        bitmap.close();
-      }
+      const selection = cropSelection ?? { x: 0, y: 0, width: 1, height: 1 };
+      const cropped = await cropImage(photo.blob, selection, editingTransform);
+      if (!mountedRef.current || !photoUrls.current.has(photo.url)) return;
+      const url = URL.createObjectURL(cropped.blob);
+      photoUrls.current.add(url);
+      URL.revokeObjectURL(photo.url);
+      photoUrls.current.delete(photo.url);
+      setPhotos((current) => current.map((item) => item.id === photo.id
+        ? {
+          ...item,
+          blob: cropped.blob,
+          url,
+          width: cropped.width,
+          height: cropped.height,
+          cropped: true,
+        }
+        : item));
       setEditingCropPhotoId('');
       setCropSelection(null);
       toast.success('تم قص الصورة إلى حدود البطاقة');
     } catch (error) {
-      console.error('تعذر قص الصورة يدويًا:', error);
+      console.error('تعذر قص صورة البطاقة يدويًا:', error);
       toast.error('تعذر قص الصورة');
+    } finally {
+      if (mountedRef.current) setIsApplyingCrop(false);
     }
   };
-
-  const unlinkCard = (cardId: string) => {
-    setCards((current) => current.filter((card) => card.id !== cardId));
-  };
-
-  const renderPhotoOptions = () => (
-    unmatchedPhotos.map((photo) => (
-      <option key={photo.id} value={photo.id}>{photo.name}</option>
-    ))
-  );
 
   return (
     <main className="space-y-6 text-start" dir="rtl">
       <header className="space-y-2">
         <h1 className="text-2xl font-semibold">تجميع صور البطاقات الشخصية</h1>
         <p className="text-sm text-muted-foreground">
-          ارفع الصور ثم اضغط «قص وتجهيز الصور». بعد ذلك اختر بنفسك الوجه والظهر اللذين يخصان الشخص نفسه؛ لا يتم تخمين الربط أو تحميل ملفات OCR.
+          ارفع الصور وحدّد الوجه والظهر يدويًا، ثم اضبط القصّ والدوران والمنظور لكل صورة. تتم المعالجة في المتصفح فقط ولا تُحفظ الصور على خادم.
         </p>
       </header>
 
@@ -557,7 +733,7 @@ export function CardImagesPage() {
             <Images className="size-5 text-primary" />
             <div>
               <h2 className="font-medium">الخطوة الأولى: اختيار الصور</h2>
-              <p className="text-sm text-muted-foreground">لا يلزم ترتيب الصور عند الرفع؛ حدّد الزوج الصحيح بعد ظهور الصور المقصوصة.</p>
+              <p className="text-sm text-muted-foreground">اختر صور الوجه والظهر التي تريد جمعها معًا.</p>
             </div>
           </div>
           <input
@@ -568,16 +744,10 @@ export function CardImagesPage() {
             accept="image/*"
             onChange={(event) => void handleUpload(event)}
           />
-          <div className="flex flex-wrap gap-2">
-            <Button type="button" variant="outline" onClick={() => uploadInput.current?.click()} disabled={isProcessing} className="gap-2">
-              <Images className="size-4" />
-              اختيار الصور
-            </Button>
-            <Button type="button" onClick={() => void preparePhotos()} disabled={isProcessing || unmatchedPhotos.length === 0} className="gap-2">
-              <ScanLine className="size-4" />
-              {isProcessing ? (processingStatus || 'جاري التجهيز...') : 'قص وتجهيز الصور'}
-            </Button>
-          </div>
+          <Button type="button" variant="outline" onClick={() => uploadInput.current?.click()} disabled={isProcessing} className="gap-2">
+            <Images className="size-4" />
+            {isProcessing ? (processingStatus || 'جاري تحميل الصور...') : 'اختيار الصور'}
+          </Button>
         </div>
       </section>
 
@@ -585,74 +755,31 @@ export function CardImagesPage() {
         <section className="space-y-4 rounded-xl border bg-card p-4">
           <div className="flex items-center gap-2">
             <Link2 className="size-5 text-primary" />
-            <h2 className="font-semibold">الخطوة الثانية: اختيار الوجه والظهر المطابقين</h2>
+            <h2 className="font-semibold">الخطوة الثانية: ربط الصور يدويًا</h2>
             <span className="text-sm text-muted-foreground">({unmatchedPhotos.length} غير مرتبطة)</span>
           </div>
           <p className="text-sm text-muted-foreground">
-            لا نعتمد على ترتيب الملفات لتجنب خلط البطاقات. اختر الصورتين اللتين تخصان الشخص نفسه، ثم أدخل الرقم القومي إن رغبت.
+            حدّد صورة كوجه وأخرى كظهر من الأزرار الموجودة على كل صورة، ثم اضغط «إنشاء معاينة». لا توجد قراءة أو مطابقة تلقائية.
           </p>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <label className="space-y-1 text-sm">
-              <span>صورة الوجه</span>
-              <select
-                value={selectedFront}
-                onChange={(event) => setSelectedFront(event.target.value)}
-                disabled={isProcessing}
-                className="h-9 w-full rounded-md border border-input bg-background px-3"
-              >
-                <option value="">بدون اختيار</option>
-                {renderPhotoOptions()}
-              </select>
-            </label>
-            <label className="space-y-1 text-sm">
-              <span>صورة الظهر</span>
-              <select
-                value={selectedBack}
-                onChange={(event) => setSelectedBack(event.target.value)}
-                disabled={isProcessing}
-                className="h-9 w-full rounded-md border border-input bg-background px-3"
-              >
-                <option value="">بدون اختيار</option>
-                {renderPhotoOptions()}
-              </select>
-            </label>
-            <label className="space-y-1 text-sm">
-              <span>الرقم القومي (اختياري)</span>
-              <Input
-                value={manualNationalId}
-                onChange={(event) => setManualNationalId(normalizeDigits(event.target.value).replace(/\D/g, '').slice(0, 14))}
-                disabled={isProcessing}
-                inputMode="numeric"
-                maxLength={14}
-                placeholder="14 رقمًا أو اتركه فارغًا"
-                dir="ltr"
-              />
-            </label>
-            <div className="flex items-end">
-              <Button type="button" onClick={handleManualPair} disabled={isProcessing} className="w-full gap-2">
-                <Link2 className="size-4" />
-                إنشاء / ربط بطاقة
-              </Button>
-            </div>
-          </div>
-
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {unmatchedPhotos.map((photo) => (
               <div key={photo.id} className="overflow-hidden rounded-lg border bg-background">
                 <img src={photo.url} alt={photo.name} className="aspect-video w-full object-contain bg-muted" />
                 <div className="space-y-2 p-2">
-                  <div className="flex items-center justify-between gap-2">
+                  {/* <div className="flex items-center justify-between gap-2">
                     <span className="min-w-0 truncate text-xs" title={photo.name}>{photo.name}</span>
                     <span className="px-1 text-[11px] text-muted-foreground">
-                      {!photo.processed ? 'بانتظار التجميع' : photo.cropped ? 'تم القص' : 'قص غير مؤكد'}
+                      {photo.cropped ? 'تم القص يدويًا' : 'قص يدوي'}
                     </span>
-                  </div>
+                  </div> */}
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex gap-1">
                       <Button type="button" size="sm" variant={selectedFront === photo.id ? 'default' : 'outline'} disabled={isProcessing} aria-pressed={selectedFront === photo.id} onClick={() => setSelectedFront(photo.id)}>
+                        {selectedFront === photo.id && <Check className="me-1 size-4" />}
                         اختيار كوجه
                       </Button>
                       <Button type="button" size="sm" variant={selectedBack === photo.id ? 'default' : 'outline'} disabled={isProcessing} aria-pressed={selectedBack === photo.id} onClick={() => setSelectedBack(photo.id)}>
+                        {selectedBack === photo.id && <Check className="me-1 size-4" />}
                         اختيار كظهر
                       </Button>
                     </div>
@@ -663,8 +790,11 @@ export function CardImagesPage() {
                       <Button type="button" variant="ghost" size="icon-sm" disabled={isProcessing} aria-label={`تدوير ${photo.name} مع عقارب الساعة`} onClick={() => void rotatePhoto(photo.id, 90)}>
                         <RotateCw className="size-4" />
                       </Button>
-                      <Button type="button" variant="ghost" size="icon-sm" disabled={isProcessing} aria-label={`قص ${photo.name}`} onClick={() => { setEditingCropPhotoId(photo.id); setCropSelection(null); }}>
+                      <Button type="button" variant="ghost" size="icon-sm" disabled={isProcessing} aria-label={`قص ${photo.name}`} onClick={() => openCropEditor(photo.id)}>
                         <Crop className="size-4" />
+                      </Button>
+                      <Button type="button" variant="ghost" size="icon-sm" disabled={isProcessing || photo.blob === photo.originalBlob} aria-label={`استعادة الصورة الأصلية لـ ${photo.name}`} title="استعادة الصورة الأصلية" onClick={() => restoreOriginalPhoto(photo.id)}>
+                        <History className="size-4" />
                       </Button>
                       <Button type="button" variant="ghost" size="icon-sm" disabled={isProcessing} aria-label={`حذف ${photo.name}`} onClick={() => removePhoto(photo.id)}>
                         <Trash2 className="size-4" />
@@ -674,6 +804,12 @@ export function CardImagesPage() {
                 </div>
               </div>
             ))}
+          </div>
+          <div className="flex justify-end">
+            <Button type="button" onClick={handleManualPair} disabled={isProcessing || !selectedFront || !selectedBack} className="gap-2">
+              <Link2 className="size-4" />
+              إنشاء معاينة
+            </Button>
           </div>
         </section>
       )}
@@ -686,7 +822,7 @@ export function CardImagesPage() {
         {cards.length === 0 ? (
           <div className="rounded-xl border border-dashed p-8 text-center text-muted-foreground">
             <UserRound className="mx-auto mb-2 size-8" />
-            <p>بعد قصّ الصور، اختر يدويًا صورة الوجه والظهر للشخص نفسه لعرض البطاقة المجمعة.</p>
+            <p>اختر الوجه والظهر يدويًا، ثم قصّ الصور أو دوّرها حسب الحاجة لعرض المعاينة.</p>
           </div>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -696,23 +832,25 @@ export function CardImagesPage() {
               return (
                 <article key={card.id} className="overflow-hidden rounded-xl border bg-card">
                   <div className="flex items-center justify-between gap-2 border-b p-3">
-                    <span className="rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary" dir="ltr">
-                      {card.nationalId || `بطاقة جديدة ${index + 1}`}
+                    <span className="rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary">
+                      بطاقة مجمعة {index + 1}
                     </span>
-                    <Input
-                      value={card.nationalId}
-                      onChange={(event) => updateCardNationalId(card.id, event.target.value)}
-                      disabled={isProcessing}
-                      inputMode="numeric"
-                      maxLength={14}
-                      placeholder="أدخل الرقم القومي يدويًا"
-                      aria-label={`الرقم القومي للبطاقة ${index + 1}`}
-                      dir="ltr"
-                      className="max-w-48"
-                    />
-                    <Button type="button" variant="ghost" size="icon-sm" disabled={isProcessing} aria-label="فك ارتباط البطاقة" onClick={() => unlinkCard(card.id)}>
-                      <Trash2 className="size-4" />
-                    </Button>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={!front || !back || isProcessing}
+                        onClick={() => swapCardSides(card.id)}
+                        className="gap-2"
+                      >
+                        <ArrowUpDown className="size-4" />
+                        تبديل الوجه والظهر
+                      </Button>
+                      <Button type="button" variant="ghost" size="icon-sm" disabled={isProcessing} aria-label="فك ارتباط البطاقة" onClick={() => unlinkCard(card.id)}>
+                        <Trash2 className="size-4" />
+                      </Button>
+                    </div>
                   </div>
                   <div className="space-y-3 p-3">
                     {([
@@ -724,17 +862,20 @@ export function CardImagesPage() {
                           <span>{label}</span>
                           {photo && (
                             <div className="flex items-center">
-                              <span className="text-[11px] text-muted-foreground">{photo.cropped ? 'تم القص' : 'قص غير مؤكد'}</span>
+                              {/* <span className="text-[11px] text-muted-foreground">{photo.cropped ? 'تم القص يدويًا' : 'قص يدوي'}</span> */}
                               <Button type="button" variant="ghost" size="icon-sm" disabled={isProcessing} aria-label={`تدوير ${label} عكس عقارب الساعة`} onClick={() => void rotatePhoto(photo.id, -90)}>
                                 <RotateCcw className="size-4" />
                               </Button>
                               <Button type="button" variant="ghost" size="icon-sm" disabled={isProcessing} aria-label={`تدوير ${label} مع عقارب الساعة`} onClick={() => void rotatePhoto(photo.id, 90)}>
                                 <RotateCw className="size-4" />
                               </Button>
-                              <Button type="button" variant="ghost" size="icon-sm" aria-label={`قص ${label}`} onClick={() => { setEditingCropPhotoId(photo.id); setCropSelection(null); }}>
+                              <Button type="button" variant="ghost" size="icon-sm" disabled={isProcessing} aria-label={`قص ${label}`} onClick={() => openCropEditor(photo.id)}>
                                 <Crop className="size-4" />
                               </Button>
-                              <Button type="button" variant="ghost" size="icon-sm" aria-label={`حذف ${label}`} onClick={() => removePhoto(photo.id)}>
+                              <Button type="button" variant="ghost" size="icon-sm" disabled={isProcessing || photo.blob === photo.originalBlob} aria-label={`استعادة الصورة الأصلية لـ ${photo.name}`} title="استعادة الصورة الأصلية" onClick={() => restoreOriginalPhoto(photo.id)}>
+                                <History className="size-4" />
+                              </Button>
+                              <Button type="button" variant="ghost" size="icon-sm" disabled={isProcessing} aria-label={`حذف ${label}`} onClick={() => removePhoto(photo.id)}>
                                 <Trash2 className="size-4" />
                               </Button>
                             </div>
@@ -748,7 +889,12 @@ export function CardImagesPage() {
                       </div>
                     ))}
                     {front && back ? (
-                      <CombinedCardPreview key={`${front.url}:${back.url}`} card={card} front={front} back={back} />
+                      <CombinedCardPreview
+                        key={`${front.url}:${back.url}`}
+                        front={front}
+                        back={back}
+                        index={index}
+                      />
                     ) : (
                       <p className="text-center text-xs text-muted-foreground">أضف الوجه والظهر لتظهر المعاينة والتحميل.</p>
                     )}
@@ -761,22 +907,37 @@ export function CardImagesPage() {
       </section>
 
       {editingCropPhoto && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-3 sm:p-6">
-          <section className="w-full max-w-3xl space-y-4 rounded-xl bg-background p-4 shadow-xl sm:p-6">
-            <div>
-              <h2 className="text-lg font-semibold">قص البطاقة يدويًا</h2>
-              <p className="text-sm text-muted-foreground">اسحب فوق الصورة لتحديد البطاقة فقط، ثم اضغط «اعتماد القص».</p>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-2 sm:p-4">
+          <section className="flex h-[calc(100dvh-4rem)] min-h-0 w-full max-w-3xl flex-col gap-2 overflow-hidden rounded-xl bg-background p-3 shadow-xl sm:p-4">
+            <div className="shrink-0">
+              <h2 className="truncate text-base font-semibold">قص البطاقة يدويًا: {editingCropPhoto.name}</h2>
+              <p className="text-xs text-muted-foreground">اسحب على الصورة لتحديد الجزء المطلوب قصّه.</p>
             </div>
             <div
-              className="relative mx-auto w-full touch-none overflow-hidden rounded-lg border bg-muted"
-              style={{ aspectRatio: `${editingCropPhoto.width} / ${editingCropPhoto.height}` }}
-              onPointerDown={startCropSelection}
-              onPointerMove={updateCropSelection}
+              className="flex min-h-0 flex-1 items-center justify-center overflow-hidden"
+            >
+              <div
+                className="relative max-h-full max-w-full touch-none overflow-hidden rounded-lg border bg-muted"
+                style={{
+                  aspectRatio: `${cropPreviewDimensions?.width ?? editingCropPhoto.width} / ${cropPreviewDimensions?.height ?? editingCropPhoto.height}`,
+                  width: `min(100%, calc((100dvh - 19rem) * ${(cropPreviewDimensions?.width ?? editingCropPhoto.width) / (cropPreviewDimensions?.height ?? editingCropPhoto.height)}))`,
+                }}
+              onPointerDown={cropPreviewReady && !isApplyingCrop ? startCropSelection : undefined}
+              onPointerMove={cropPreviewReady && !isApplyingCrop ? updateCropSelection : undefined}
               onPointerUp={finishCropSelection}
               onPointerCancel={finishCropSelection}
             >
-              <img src={editingCropPhoto.url} alt="حدد حدود البطاقة" className="pointer-events-none absolute inset-0 size-full select-none object-fill" draggable={false} />
-              {cropSelection && (
+              <canvas
+                ref={cropCanvasRef}
+                aria-label="معاينة الصورة بعد تعديل الدوران والمنظور"
+                className={`pointer-events-none absolute inset-0 size-full select-none ${cropPreviewReady ? '' : 'invisible'}`}
+              />
+              {!cropPreviewReady && !cropPreviewError && (
+                <p className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground">
+                  جاري تجهيز معاينة الصورة...
+                </p>
+              )}
+              {cropSelection && cropPreviewReady && (
                 <div
                   className="pointer-events-none absolute border-2 border-primary bg-primary/15"
                   style={{
@@ -787,14 +948,24 @@ export function CardImagesPage() {
                   }}
                 />
               )}
+              </div>
             </div>
-            <div className="flex flex-wrap justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => { setEditingCropPhotoId(''); setCropSelection(null); }}>
+            {cropPreviewError && <p className="text-sm text-destructive">{cropPreviewError}</p>}
+            <PhotoTransformControls
+              transform={editingTransform}
+              onChange={updatePhotoTransform}
+              onReset={resetPhotoTransform}
+              disabled={isApplyingCrop}
+            />
+            <div className="flex shrink-0 justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => { setEditingCropPhotoId(''); setEditingTransform({ ...DEFAULT_IMAGE_TRANSFORM }); setCropSelection(null); }} disabled={isApplyingCrop}>
                 إلغاء
               </Button>
-              <Button type="button" onClick={() => void applyManualCrop()} disabled={!cropSelection || cropSelection.width < 0.03 || cropSelection.height < 0.03}>
-                اعتماد القص
-              </Button>
+              {canApplyCrop && (
+                <Button type="button" onClick={() => void applyManualCrop()} disabled={!cropPreviewReady || isApplyingCrop}>
+                {isApplyingCrop ? 'جاري تطبيق التعديلات...' : 'اعتماد القص والتعديلات'}
+                </Button>
+              )}
             </div>
           </section>
         </div>
