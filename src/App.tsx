@@ -20,6 +20,7 @@ import './App.css';
 import ShareDialog from '@/components/Dialog.tsx';
 import { Toaster } from '@/components/ui/sonner.tsx';
 import { MapPage } from '@/features/map/pages/MapPage.tsx';
+import { CardImagesPage } from '@/features/card-images/pages/CardImagesPage.tsx';
 
 const STORAGE_KEY = 'loan-calculator-last-page';
 
@@ -153,6 +154,7 @@ function App() {
                 <Route path={paths.installments} element={<InstallmentsPage />} />
                 <Route path={paths.editInstallment} element={<EditInstallmentPage />} />
                 <Route path={paths.map} element={<MapPage />} />
+                <Route path={paths.cardImages} element={<CardImagesPage />} />
                 <Route path="*" element={<Navigate to={paths.loanCalculator} replace />} />
               </Routes>
               <InstallPWA />

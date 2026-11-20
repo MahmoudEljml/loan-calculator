@@ -1,4 +1,4 @@
-import { Calculator, Hash, Users, Receipt, Map } from "lucide-react"
+import { Calculator, Hash, Users, Receipt, Map, Images } from "lucide-react"
 import { NavLink, useLocation } from "react-router-dom"
 import {
   Sidebar,
@@ -49,6 +49,12 @@ const nav = [
     end: false,
     label: "خريطة",
     icon: Map,
+  },
+  {
+    to: paths.cardImages,
+    end: false,
+    label: "تجميع صور البطاقات",
+    icon: Images,
   }
 ] as const
 

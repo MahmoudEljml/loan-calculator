@@ -7,4 +7,5 @@ export const paths = {
   installments: "/installments",
   editInstallment: "/edit-installment",
   map: "/map",
+  cardImages: "/card-images",
 } as const;
