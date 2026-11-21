@@ -423,7 +423,7 @@ function PartCalculate({
 }: PartCalculateProps) {
 
     // تحديد الحدود الثابتة للمدخلات
-    const MIN_AMOUNT = 5000;
+    const MIN_AMOUNT = 10000;
     const MAX_AMOUNT = 292000;
     const STEP_AMOUNT = 1000;
 
