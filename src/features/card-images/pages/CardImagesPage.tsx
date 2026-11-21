@@ -7,6 +7,9 @@ import {
   Images,
   Link2,
   History,
+  MoveHorizontal,
+  MoveVertical,
+  RefreshCw,
   RotateCcw,
   RotateCw,
   Trash2,
@@ -46,6 +49,11 @@ interface CropPreviewSource {
   height: number;
 }
 
+type CropEdge = 'top' | 'right' | 'bottom' | 'left';
+type CropDragState =
+  | { type: 'create'; startX: number; startY: number }
+  | { type: 'resize'; edge: CropEdge; initial: CropSelection };
+
 interface GroupedCard {
   id: string;
   frontPhotoId?: string;
@@ -59,7 +67,20 @@ const A4_HEIGHT = 3508;
 const A4_MARGIN = 100;
 const PREVIEW_WIDTH = 900;
 const COLLAGE_GAP_RATIO = 0.024;
+const MIN_CROP_SELECTION_SIZE = 0.03;
 type TransformKey = keyof ImageTransform;
+
+const CROP_EDGE_CONTROLS: {
+  edge: CropEdge;
+  label: string;
+  hitAreaClass: string;
+  gripClass: string;
+}[] = [
+  { edge: 'top', label: 'الحد العلوي', hitAreaClass: 'inset-x-0 -top-1.5 h-3 cursor-ns-resize', gripClass: 'h-1 w-10' },
+  { edge: 'right', label: 'الحد الأيمن', hitAreaClass: 'inset-y-0 -right-1.5 w-3 cursor-ew-resize', gripClass: 'h-10 w-1' },
+  { edge: 'bottom', label: 'الحد السفلي', hitAreaClass: 'inset-x-0 -bottom-1.5 h-3 cursor-ns-resize', gripClass: 'h-1 w-10' },
+  { edge: 'left', label: 'الحد الأيسر', hitAreaClass: 'inset-y-0 -left-1.5 w-3 cursor-ew-resize', gripClass: 'h-10 w-1' },
+];
 
 const DEFAULT_IMAGE_TRANSFORM: ImageTransform = {
   rotation: 0,
@@ -98,38 +119,95 @@ function PhotoTransformControls({
 }: {
   transform: ImageTransform;
   onChange: (key: TransformKey, value: number) => void;
-  onReset: () => void;
+  onReset: (key: TransformKey) => void;
   disabled?: boolean;
 }) {
+  const [activeKey, setActiveKey] = useState<TransformKey>('rotation');
+  const activeControl = TRANSFORM_CONTROLS.find((control) => control.key === activeKey)!;
+
   return (
-    <div className="shrink-0 rounded-md border bg-muted/40 p-2 sm:p-3">
-      <div className="mb-1 flex items-center justify-between gap-2">
-        <h3 className="text-xs font-medium sm:text-sm">ضبط الدوران والمنظور</h3>
-        <Button type="button" size="sm" variant="outline" className="h-7 gap-1 px-2 text-xs" onClick={onReset} disabled={disabled}>
-          <RotateCcw className="size-3.5" />
-          إعادة الضبط
+    <div className="shrink-0 space-y-2 rounded-md border bg-muted/40 p-2 sm:p-3">
+      <div role="toolbar" aria-label="أدوات الدوران والمنظور" className="flex items-center justify-center gap-1">
+        {TRANSFORM_CONTROLS.map((control) => (
+          <Button
+            key={control.key}
+            type="button"
+            size="icon-sm"
+            variant={activeKey === control.key ? 'default' : 'outline'}
+            aria-label={control.label}
+            title={control.label}
+            aria-pressed={activeKey === control.key}
+            onClick={() => setActiveKey(control.key)}
+            disabled={disabled}
+          >
+            {control.key === 'rotation'
+              ? <RotateCcw className="size-4" />
+              : control.key === 'tiltX'
+                ? <MoveHorizontal className="size-4" />
+                : <MoveVertical className="size-4" />}
+          </Button>
+        ))}
+        {activeKey === 'rotation' && (
+          <>
+            <span aria-hidden="true" className="mx-1 h-5 w-px bg-border" />
+            <Button
+              type="button"
+              size="icon-sm"
+              variant="outline"
+              aria-label="تدوير سريع لليسار 90 درجة"
+              title="تدوير سريع لليسار 90°"
+              onClick={() => onChange('rotation', Math.max(-90, transform.rotation - 90))}
+              disabled={disabled}
+            >
+              <RotateCcw className="size-4" />
+            </Button>
+            <Button
+              type="button"
+              size="icon-sm"
+              variant="outline"
+              aria-label="تدوير سريع لليمين 90 درجة"
+              title="تدوير سريع لليمين 90°"
+              onClick={() => onChange('rotation', Math.min(90, transform.rotation + 90))}
+              disabled={disabled}
+            >
+              <RotateCw className="size-4" />
+            </Button>
+          </>
+        )}
+        <span aria-hidden="true" className="mx-1 h-5 w-px bg-border" />
+        <Button
+          type="button"
+          size="icon-sm"
+          variant="outline"
+          aria-label={`إعادة ضبط ${activeControl.label}`}
+          title={`إعادة ضبط ${activeControl.label} إلى صفر`}
+          onClick={() => onReset(activeKey)}
+          disabled={disabled || transform[activeKey] === 0}
+        >
+          <RefreshCw className="size-4" />
         </Button>
       </div>
-      <div className="grid grid-cols-1 gap-x-3 gap-y-1 sm:grid-cols-3">
-        {TRANSFORM_CONTROLS.map((control) => (
-          <label key={control.key} className="block min-w-0 space-y-0.5 text-[11px]">
-            <span className="flex items-center justify-between gap-1">
-              <span>{control.label}</span>
-              <span dir="ltr">{transform[control.key]}{control.unit}</span>
-            </span>
-            <input
-              type="range"
-              min={control.min}
-              max={control.max}
-              step={control.step}
-              value={transform[control.key]}
-              disabled={disabled}
-              onChange={(event) => onChange(control.key, Number(event.target.value))}
-              className="h-4 w-full accent-primary"
-              aria-label={control.label}
-            />
-          </label>
-        ))}
+      <div className="mx-auto flex max-w-xl items-center gap-2">
+        <span className="w-12 text-center text-xs tabular-nums" dir="ltr">
+          {transform[activeKey]}{activeControl.unit}
+        </span>
+        <div className="relative flex-1 pb-3">
+          <input
+            type="range"
+            min={activeControl.min}
+            max={activeControl.max}
+            step={activeControl.step}
+            value={transform[activeKey]}
+            disabled={disabled}
+            onChange={(event) => onChange(activeKey, Number(event.target.value))}
+            className="relative z-10 h-5 w-full accent-primary"
+            aria-label={activeControl.label}
+          />
+          <span aria-hidden="true" className="pointer-events-none absolute left-1/2 top-2 z-20 h-3 w-px -translate-x-1/2 bg-foreground/70" />
+          <span aria-hidden="true" className="pointer-events-none absolute left-1/2 top-6 -translate-x-1/2 text-[10px] text-muted-foreground">
+            0°
+          </span>
+        </div>
       </div>
     </div>
   );
@@ -339,9 +417,10 @@ export function CardImagesPage() {
   const photoUrls = useRef(new Set<string>());
   const uploadInput = useRef<HTMLInputElement>(null);
   const cropCanvasRef = useRef<HTMLCanvasElement>(null);
+  const cropSelectionContainerRef = useRef<HTMLDivElement>(null);
   const cropPreviewSourceRef = useRef<CropPreviewSource | null>(null);
   const processingRef = useRef(false);
-  const cropDragRef = useRef<{ x: number; y: number } | null>(null);
+  const cropDragRef = useRef<CropDragState | null>(null);
   const mountedRef = useRef(true);
   const unmatchedPhotos = photos.filter((photo) => (
     !cards.some((card) => card.frontPhotoId === photo.id || card.backPhotoId === photo.id)
@@ -354,7 +433,9 @@ export function CardImagesPage() {
     || editingTransform.tiltX !== 0
     || editingTransform.tiltY !== 0;
   const hasValidCropSelection = Boolean(
-    cropSelection && cropSelection.width >= 0.03 && cropSelection.height >= 0.03,
+    cropSelection
+      && cropSelection.width >= MIN_CROP_SELECTION_SIZE
+      && cropSelection.height >= MIN_CROP_SELECTION_SIZE,
   );
   const canApplyCrop = hasValidCropSelection || (!cropSelection && hasTransformChanges);
 
@@ -621,9 +702,9 @@ export function CardImagesPage() {
     setEditingTransform((current) => ({ ...current, [key]: value }));
   };
 
-  const resetPhotoTransform = () => {
+  const resetPhotoTransform = (key: TransformKey) => {
     setCropSelection(null);
-    setEditingTransform({ ...DEFAULT_IMAGE_TRANSFORM });
+    setEditingTransform((current) => ({ ...current, [key]: DEFAULT_IMAGE_TRANSFORM[key] }));
   };
 
   const rotatePhoto = async (photoId: string, degrees: 90 | -90) => {
@@ -652,27 +733,63 @@ export function CardImagesPage() {
     }
   };
 
+  const getCropPoint = (event: React.PointerEvent) => {
+    const bounds = cropSelectionContainerRef.current?.getBoundingClientRect();
+    if (!bounds || bounds.width === 0 || bounds.height === 0) return null;
+    return {
+      x: Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width)),
+      y: Math.max(0, Math.min(1, (event.clientY - bounds.top) / bounds.height)),
+    };
+  };
+
   const startCropSelection = (event: React.PointerEvent<HTMLDivElement>) => {
-    const bounds = event.currentTarget.getBoundingClientRect();
-    const x = Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width));
-    const y = Math.max(0, Math.min(1, (event.clientY - bounds.top) / bounds.height));
-    cropDragRef.current = { x, y };
-    setCropSelection({ x, y, width: 0, height: 0 });
-    event.currentTarget.setPointerCapture(event.pointerId);
+    const point = getCropPoint(event);
+    if (!point) return;
+    cropDragRef.current = { type: 'create', startX: point.x, startY: point.y };
+    setCropSelection({ x: point.x, y: point.y, width: 0, height: 0 });
+    cropSelectionContainerRef.current?.setPointerCapture(event.pointerId);
+  };
+
+  const startCropEdgeResize = (edge: CropEdge, event: React.PointerEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    const point = getCropPoint(event);
+    if (!point || !cropSelection) return;
+    cropDragRef.current = { type: 'resize', edge, initial: cropSelection };
+    cropSelectionContainerRef.current?.setPointerCapture(event.pointerId);
   };
 
   const updateCropSelection = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (!cropDragRef.current) return;
-    const bounds = event.currentTarget.getBoundingClientRect();
-    const x = Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width));
-    const y = Math.max(0, Math.min(1, (event.clientY - bounds.top) / bounds.height));
-    const start = cropDragRef.current;
-    setCropSelection({
-      x: Math.min(start.x, x),
-      y: Math.min(start.y, y),
-      width: Math.abs(x - start.x),
-      height: Math.abs(y - start.y),
-    });
+    const drag = cropDragRef.current;
+    const point = getCropPoint(event);
+    if (!drag || !point) return;
+
+    if (drag.type === 'create') {
+      setCropSelection({
+        x: Math.min(drag.startX, point.x),
+        y: Math.min(drag.startY, point.y),
+        width: Math.abs(point.x - drag.startX),
+        height: Math.abs(point.y - drag.startY),
+      });
+      return;
+    }
+
+    const { initial, edge } = drag;
+    if (edge === 'top') {
+      const bottom = initial.y + initial.height;
+      const y = Math.min(point.y, bottom - MIN_CROP_SELECTION_SIZE);
+      setCropSelection({ ...initial, y, height: bottom - y });
+    } else if (edge === 'bottom') {
+      const bottom = Math.max(point.y, initial.y + MIN_CROP_SELECTION_SIZE);
+      setCropSelection({ ...initial, height: bottom - initial.y });
+    } else if (edge === 'left') {
+      const right = initial.x + initial.width;
+      const x = Math.min(point.x, right - MIN_CROP_SELECTION_SIZE);
+      setCropSelection({ ...initial, x, width: right - x });
+    } else {
+      const right = Math.max(point.x, initial.x + MIN_CROP_SELECTION_SIZE);
+      setCropSelection({ ...initial, width: right - initial.x });
+    }
   };
 
   const finishCropSelection = () => {
@@ -911,12 +1028,13 @@ export function CardImagesPage() {
           <section className="flex h-[calc(100dvh-4rem)] min-h-0 w-full max-w-3xl flex-col gap-2 overflow-hidden rounded-xl bg-background p-3 shadow-xl sm:p-4">
             <div className="shrink-0">
               <h2 className="truncate text-base font-semibold">قص البطاقة يدويًا: {editingCropPhoto.name}</h2>
-              <p className="text-xs text-muted-foreground">اسحب على الصورة لتحديد الجزء المطلوب قصّه.</p>
+              <p className="text-xs text-muted-foreground">اسحب على الصورة لتحديد الجزء المطلوب قصّه، ثم اسحب أي ضلع لتعديل حدوده.</p>
             </div>
             <div
               className="flex min-h-0 flex-1 items-center justify-center overflow-hidden"
             >
               <div
+                ref={cropSelectionContainerRef}
                 className="relative max-h-full max-w-full touch-none overflow-hidden rounded-lg border bg-muted"
                 style={{
                   aspectRatio: `${cropPreviewDimensions?.width ?? editingCropPhoto.width} / ${cropPreviewDimensions?.height ?? editingCropPhoto.height}`,
@@ -939,14 +1057,27 @@ export function CardImagesPage() {
               )}
               {cropSelection && cropPreviewReady && (
                 <div
-                  className="pointer-events-none absolute border-2 border-primary bg-primary/15"
+                  className="pointer-events-none absolute z-10 border-2 border-primary bg-primary/15"
                   style={{
                     left: `${cropSelection.x * 100}%`,
                     top: `${cropSelection.y * 100}%`,
                     width: `${cropSelection.width * 100}%`,
                     height: `${cropSelection.height * 100}%`,
                   }}
-                />
+                >
+                  {CROP_EDGE_CONTROLS.map(({ edge, label, hitAreaClass, gripClass }) => (
+                    <button
+                      key={edge}
+                      type="button"
+                      aria-label={`تحريك ${label} لمنطقة القص`}
+                      title={`تحريك ${label}`}
+                      className={`pointer-events-auto absolute z-10 flex items-center justify-center border-0 bg-transparent p-0 text-primary hover:bg-primary/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary ${hitAreaClass}`}
+                      onPointerDown={(event) => startCropEdgeResize(edge, event)}
+                    >
+                      <span className={`rounded-full bg-primary ${gripClass}`} />
+                    </button>
+                  ))}
+                </div>
               )}
               </div>
             </div>
