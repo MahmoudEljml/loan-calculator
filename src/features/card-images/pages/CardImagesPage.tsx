@@ -96,7 +96,7 @@ const TRANSFORM_CONTROLS: {
   step: number;
   unit: string;
 }[] = [
-  { key: 'rotation', label: 'زاوية التدوير الدقيقة', min: -90, max: 90, step: 0.5, unit: '°' },
+  { key: 'rotation', label: 'زاوية التدوير الدقيقة', min: -45, max:45, step: 0.5, unit: '°' },
   { key: 'tiltX', label: 'إمالة أفقية بالمنظور', min: -35, max: 35, step: 1, unit: '°' },
   { key: 'tiltY', label: 'إمالة رأسية بالمنظور', min: -35, max: 35, step: 1, unit: '°' },
 ];
@@ -188,9 +188,6 @@ function PhotoTransformControls({
         </Button>
       </div>
       <div className="mx-auto flex max-w-xl items-center gap-2">
-        <span className="w-12 text-center text-xs tabular-nums" dir="ltr">
-          {transform[activeKey]}{activeControl.unit}
-        </span>
         <div className="relative flex-1 pb-3">
           <input
             type="range"
@@ -204,8 +201,8 @@ function PhotoTransformControls({
             aria-label={activeControl.label}
           />
           <span aria-hidden="true" className="pointer-events-none absolute left-1/2 top-2 z-20 h-3 w-px -translate-x-1/2 bg-foreground/70" />
-          <span aria-hidden="true" className="pointer-events-none absolute left-1/2 top-6 -translate-x-1/2 text-[10px] text-muted-foreground">
-            0°
+          <span dir="ltr" aria-hidden="true" className="pointer-events-none absolute left-1/2 top-6 -translate-x-1/2 text-[10px] text-muted-foreground">
+                {transform[activeKey]}{activeControl.unit}
           </span>
         </div>
       </div>
